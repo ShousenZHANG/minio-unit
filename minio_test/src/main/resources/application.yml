@@ -1,0 +1,11 @@
+spring:
+  # 配置文件上传大小限制
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 200MB
+minio:
+  endpoint: http://124.70.53.210:9080
+  accessKey: KvRhfCcHFSDpJIlS
+  secretKey: Gb5Sp4PkffWIYWfzSDpPwKwWLer6JN4g
+
