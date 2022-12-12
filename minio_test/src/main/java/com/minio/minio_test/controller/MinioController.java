@@ -2,9 +2,9 @@ package com.minio.minio_test.controller;
 
 import com.minio.minio_test.pojo.ObjectItem;
 import com.minio.minio_test.utils.MinioUtil;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.minio.minio_test.vo.ResultResponse;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -16,41 +16,37 @@ import java.util.List;
  * @date 2022/11/29
  */
 @RestController
-@Slf4j
 public class MinioController {
+
     @Resource
     private MinioUtil minioUtil;
 
 
     /**
-     * 上传文件
+     * 上传文件信息
      *
-     * @param file 文件
-     * @return {@link Object}
+     * @param files      多文件
+     * @param bucketName 存储桶名称
+     * @return {@link ResultResponse}
      */
-//    @PostMapping("/upload")
-//    public String upload(List<MultipartFile> file) {
-//        Boolean flag = minioUtil.upload(file,"");
-//        if (!flag) {
-//            return "上传失败！";
-//        }
-//        return "上传成功！";
-//    }
-//
-//    /**
-//     * 删除文件
-//     *
-//     * @param file 文件
-//     * @return {@link String}
-//     */
-//    @DeleteMapping
-//    public String delete(String file) {
-//        Boolean flag = minioUtil.removeObject(file);
-//        if (!flag) {
-//            return "删除失败！";
-//        }
-//        return "删除成功！";
-//    }
+    @PostMapping("/upload")
+    public ResultResponse upload(List<MultipartFile> files, String bucketName) {
+        Boolean upload = minioUtil.upload(files, bucketName, null);
+        return ResultResponse.ok(upload);
+    }
+
+    /**
+     * 删除存储桶中文件信息
+     *
+     * @param bucketName 文件桶名称
+     * @param objectName 文件名称
+     * @return {@link ResultResponse}
+     */
+    @DeleteMapping
+    public ResultResponse delete(String bucketName, String objectName) {
+        Boolean delete = minioUtil.removeObject(bucketName, objectName);
+        return ResultResponse.ok(delete);
+    }
 
     /**
      * 创建桶

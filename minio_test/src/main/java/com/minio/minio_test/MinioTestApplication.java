@@ -1,7 +1,6 @@
 package com.minio.minio_test;
 
 import com.minio.minio_test.config.MinIoClientProperties;
-import com.minio.minio_test.utils.MinioUtil;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

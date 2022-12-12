@@ -1,6 +1,8 @@
 package com.minio.minio_test.utils;
 
+import com.minio.minio_test.exception.FileTransferException;
 import com.minio.minio_test.pojo.ObjectItem;
+import com.minio.minio_test.vo.ResultResponse;
 import io.minio.*;
 import io.minio.http.Method;
 import io.minio.messages.*;
@@ -14,7 +16,6 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.InputStream;
 import java.util.*;
-
 
 /**
  * minio工具类
@@ -41,8 +42,7 @@ public class MinioUtil {
         try {
             found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            throw new FileTransferException(ResultResponse.error().getCode(), "Existence of bucket has error!", e);
         }
         return found;
     }
@@ -61,8 +61,7 @@ public class MinioUtil {
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            throw new FileTransferException(ResultResponse.error().getCode(), "Make bucket has error!", e);
         }
         return true;
     }
@@ -80,8 +79,7 @@ public class MinioUtil {
                 minioClient.removeBucket(RemoveBucketArgs.builder().bucket(bucketName).build());
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            throw new FileTransferException(ResultResponse.error().getCode(), "Remove bucket has error!", e);
         }
         return true;
     }
@@ -99,12 +97,11 @@ public class MinioUtil {
             try {
                 InputStream in = file.getInputStream();
                 directory = Optional.ofNullable(directory).orElse("");
-                String minFileName = directory + minFileName(Objects.requireNonNull(file.getOriginalFilename()));
+                String minFileName = directory + file.getOriginalFilename();
                 minioClient.putObject(PutObjectArgs.builder().bucket(bucketName).object(minFileName).stream(in, in.available(), -1).contentType(file.getContentType()).build());
                 in.close();
             } catch (Exception e) {
-                e.printStackTrace();
-                return false;
+                throw new FileTransferException(ResultResponse.error().getCode(), "Upload file has error!", e);
             }
         }
         return true;
@@ -122,26 +119,10 @@ public class MinioUtil {
         try {
             minioClient.uploadObject(UploadObjectArgs.builder().bucket(bucketName).object(objectName).filename(fileName).build());
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            throw new FileTransferException(ResultResponse.error().getCode(), "Upload object has error!", e);
         }
         return true;
     }
-
-    /**
-     * 生成上传的文件名
-     *
-     * @param originalFileName 原始文件名
-     * @return {@link String}
-     */
-    private String minFileName(String originalFileName) {
-        String suffix = originalFileName;
-        if (originalFileName.contains(".")) {
-            suffix = originalFileName.substring(originalFileName.lastIndexOf("."));
-        }
-        return UUID.randomUUID().toString().replace("-", "").toUpperCase() + suffix;
-    }
-
 
     /**
      * 文件下载
@@ -171,7 +152,8 @@ public class MinioUtil {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new FileTransferException(ResultResponse.error().getCode(), "Download object has error!", e);
+
         }
     }
 
@@ -186,7 +168,7 @@ public class MinioUtil {
         try {
             minioClient.downloadObject(DownloadObjectArgs.builder().bucket(bucketName).object(objectName).filename(diskFileName).build());
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new FileTransferException(ResultResponse.error().getCode(), "Download to local disk has error!", e);
         }
     }
 
@@ -208,8 +190,7 @@ public class MinioUtil {
                 objectItems.add(objectItem);
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            throw new FileTransferException(ResultResponse.error().getCode(), "List objects has error!", e);
         }
         return objectItems;
     }
@@ -225,7 +206,7 @@ public class MinioUtil {
         try {
             message = minioClient.getBucketPolicy(GetBucketPolicyArgs.builder().bucket(bucketName).build());
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new FileTransferException(ResultResponse.error().getCode(), "Get bucket policy has error!", e);
         }
         return message;
     }
@@ -273,8 +254,7 @@ public class MinioUtil {
                             .object(objectName)
                             .build());
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            throw new FileTransferException(ResultResponse.error().getCode(), "Remove object has error!", e);
         }
         return true;
     }
@@ -294,7 +274,7 @@ public class MinioUtil {
         for (String objectName : objectNames) {
             deleteObjects.add(new DeleteObject(objectName));
         }
-        Iterable<Result<DeleteError>> results = minioClient.removeObjects(
+        minioClient.removeObjects(
                 RemoveObjectsArgs.builder()
                         .bucket(bucketName)
                         .objects(deleteObjects)
@@ -311,7 +291,7 @@ public class MinioUtil {
      * @return {@link String}
      */
     public String createUploadUrl(String bucketName, String objectName, Integer expiry) {
-        String url = null;
+        String url;
         expiry = expiryHandle(expiry);
         try {
             url = minioClient.getPresignedObjectUrl(
@@ -323,7 +303,7 @@ public class MinioUtil {
                             .build()
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new FileTransferException(ResultResponse.error().getCode(), "Create upload url has error!", e);
         }
         return url;
     }
@@ -361,7 +341,7 @@ public class MinioUtil {
                             .build()
             );
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new FileTransferException(ResultResponse.error().getCode(), "Get object url has error!", e);
         }
         return url;
     }
