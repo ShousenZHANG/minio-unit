@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 /**
@@ -31,8 +32,8 @@ public class MinioController {
      */
     @PostMapping("/upload")
     public ResultResponse upload(List<MultipartFile> files, String bucketName) {
-        Boolean upload = minioUtil.upload(files, bucketName, null);
-        return ResultResponse.ok(upload);
+        String message = minioUtil.upload(files, bucketName, null);
+        return ResultResponse.ok(ResultResponse.ok().getCode(), message);
     }
 
     /**
@@ -44,8 +45,8 @@ public class MinioController {
      */
     @DeleteMapping
     public ResultResponse delete(String bucketName, String objectName) {
-        Boolean delete = minioUtil.removeObject(bucketName, objectName);
-        return ResultResponse.ok(delete);
+        String message = minioUtil.removeObject(bucketName, objectName);
+        return ResultResponse.ok(ResultResponse.ok().getCode(), message);
     }
 
     /**
@@ -55,12 +56,9 @@ public class MinioController {
      * @return {@link String}
      */
     @PostMapping("/makeBucket")
-    public String makeBucket(String bucketName) {
-        Boolean flag = minioUtil.makeBucket(bucketName);
-        if (!flag) {
-            return "创建失败！";
-        }
-        return "创建成功！";
+    public ResultResponse makeBucket(String bucketName) {
+        String message = minioUtil.makeBucket(bucketName);
+        return ResultResponse.ok(ResultResponse.ok().getCode(), message);
     }
 
     /**
@@ -70,14 +68,11 @@ public class MinioController {
      * @param fileName   下载
      * @return {@link String}
      */
-//    @PostMapping("/download")
-//    public String download(@RequestParam("object") String objectName, @RequestParam("file") String fileName) {
-//        Boolean flag = minioUtil.downloadFile(objectName, fileName);
-//        if (!flag) {
-//            return "下载文件失败！";
-//        }
-//        return "下载文件成功！";
-//    }
+    @PostMapping("/download")
+    public ResultResponse download(@RequestParam("bucketName") String bucketName, @RequestParam("object") String objectName, @RequestParam("file") String fileName) {
+        String message = minioUtil.downloadToLocalDisk(bucketName, objectName, fileName);
+        return ResultResponse.ok(ResultResponse.ok().getCode(), message);
+    }
 
 
     /**
@@ -87,8 +82,9 @@ public class MinioController {
      * @return {@link List}<{@link ObjectItem}>
      */
     @GetMapping("/listObjects")
-    public List<ObjectItem> listObjects(String bucketName) {
-        return minioUtil.listObjects(bucketName);
+    public ResultResponse listObjects(String bucketName) {
+        List<ObjectItem> objectItems = minioUtil.listObjects(bucketName);
+        return ResultResponse.ok(objectItems);
     }
 
 
@@ -98,13 +94,10 @@ public class MinioController {
      * @param bucketName 桶名称
      * @return {@link String}
      */
-    @DeleteMapping("/deleteBuckets")
-    public String deleteBuckets(String bucketName) {
-        Boolean flag = minioUtil.removeBucket(bucketName);
-        if (!flag) {
-            return "删除失败！";
-        }
-        return "删除成功！";
+    @DeleteMapping("/deleteBucket")
+    public ResultResponse deleteBucket(String bucketName) {
+        String message = minioUtil.removeBucket(bucketName);
+        return ResultResponse.ok(ResultResponse.ok().getCode(), message);
     }
 
     /**

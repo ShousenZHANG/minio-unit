@@ -53,17 +53,17 @@ public class MinioUtil {
      * @param bucketName 存储bucket名称
      * @return Boolean
      */
-    public Boolean makeBucket(String bucketName) {
+    public String makeBucket(String bucketName) {
         try {
-            // 如存储桶不存在，创建之。
-            Boolean found = bucketExists(bucketName);
-            if (!found) {
+            if (!bucketExists(bucketName)) {
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
+            } else {
+                return "Bucket is already in existence";
             }
         } catch (Exception e) {
             throw new FileTransferException(ResultResponse.error().getCode(), "Make bucket has error!", e);
         }
-        return true;
+        return "Make bucket successfully";
     }
 
     /**
@@ -72,16 +72,17 @@ public class MinioUtil {
      * @param bucketName 存储bucket名称
      * @return Boolean
      */
-    public Boolean removeBucket(String bucketName) {
+    public String removeBucket(String bucketName) {
         try {
-            Boolean found = bucketExists(bucketName);
-            if (found) {
+            if (bucketExists(bucketName)) {
                 minioClient.removeBucket(RemoveBucketArgs.builder().bucket(bucketName).build());
+            } else {
+                return "Bucket is not in existence！";
             }
         } catch (Exception e) {
             throw new FileTransferException(ResultResponse.error().getCode(), "Remove bucket has error!", e);
         }
-        return true;
+        return "Remove bucket successfully！";
     }
 
     /**
@@ -92,7 +93,10 @@ public class MinioUtil {
      * @param directory     上传的路径地址
      * @return {@link Boolean}
      */
-    public Boolean upload(List<MultipartFile> multipartFile, String bucketName, String directory) {
+    public String upload(List<MultipartFile> multipartFile, String bucketName, String directory) {
+        if (!bucketExists(bucketName)) {
+            return "Bucket is not in existence！";
+        }
         for (MultipartFile file : multipartFile) {
             try {
                 InputStream in = file.getInputStream();
@@ -104,7 +108,7 @@ public class MinioUtil {
                 throw new FileTransferException(ResultResponse.error().getCode(), "Upload file has error!", e);
             }
         }
-        return true;
+        return "Upload files successfully";
     }
 
     /**
@@ -164,12 +168,16 @@ public class MinioUtil {
      * @param objectName   桶中文件名称
      * @param diskFileName 本地磁盘文件名称，全路径
      */
-    public void downloadToLocalDisk(String bucketName, String objectName, String diskFileName) {
+    public String downloadToLocalDisk(String bucketName, String objectName, String diskFileName) {
         try {
+            if (!bucketExists(bucketName)) {
+                return "Bucket is not in existence！";
+            }
             minioClient.downloadObject(DownloadObjectArgs.builder().bucket(bucketName).object(objectName).filename(diskFileName).build());
         } catch (Exception e) {
             throw new FileTransferException(ResultResponse.error().getCode(), "Download to local disk has error!", e);
         }
+        return "Download to local disk successfully";
     }
 
     /**
@@ -243,9 +251,9 @@ public class MinioUtil {
      * @param objectName 文件名称
      * @return boolean
      */
-    public boolean removeObject(String bucketName, String objectName) {
+    public String removeObject(String bucketName, String objectName) {
         if (!bucketExists(bucketName)) {
-            return false;
+            return "Bucket is not in existence！";
         }
         try {
             minioClient.removeObject(
@@ -256,7 +264,7 @@ public class MinioUtil {
         } catch (Exception e) {
             throw new FileTransferException(ResultResponse.error().getCode(), "Remove object has error!", e);
         }
-        return true;
+        return "Successfully deleted！";
     }
 
     /**
