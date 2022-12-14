@@ -3,11 +3,12 @@ package com.minio.minio_test.controller;
 import com.minio.minio_test.pojo.ObjectItem;
 import com.minio.minio_test.utils.MinioUtil;
 import com.minio.minio_test.vo.ResultResponse;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
-import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
@@ -87,6 +88,17 @@ public class MinioController {
         return ResultResponse.ok(objectItems);
     }
 
+    /**
+     * 查询所有桶名称
+     *
+     * @return {@link ResultResponse}
+     */
+    @GetMapping("/listBuckets")
+    public ResultResponse listBuckets() {
+        List<String> listBucketNames = minioUtil.listBucketNames();
+        return ResultResponse.ok(listBucketNames);
+    }
+
 
     /**
      * 删除桶
@@ -111,5 +123,24 @@ public class MinioController {
         return minioUtil.getBucketPolicy(bucketName);
     }
 
+    /**
+     * 定期清除存储桶中的文件内容
+     */
+    @Scheduled(cron = "0 0/1 14 * * ? ")
+    private void clearIntervals() {
+        //当前时间前一天的时间
+        ZonedDateTime rangeTime = ZonedDateTime.now().minusDays(1);
+        //创建定期清除策略的文件存储桶
+        minioUtil.makeBucket("miniodemo");
+        //删除一天之前的文件内容
+        List<ObjectItem> clearIntervalsBucketList = minioUtil.listObjects("miniodemo");
+        for (ObjectItem objectItem : clearIntervalsBucketList) {
+            ZonedDateTime lastModified = objectItem.getLastModified();
+            boolean flag = lastModified.isBefore(rangeTime);
+            if (flag) {
+                minioUtil.removeObject("miniodemo", objectItem.getObjectName());
+            }
+        }
+    }
 }
 

@@ -2,6 +2,8 @@ package com.minio.minio_test.pojo;
 
 import lombok.Data;
 
+import java.time.ZonedDateTime;
+
 /**
  * 文件实体类
  *
@@ -11,5 +13,6 @@ import lombok.Data;
 @Data
 public class ObjectItem {
     private String objectName;
+    private ZonedDateTime lastModified;
     private Long size;
 }

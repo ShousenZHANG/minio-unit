@@ -193,6 +193,7 @@ public class MinioUtil {
             for (Result<Item> result : results) {
                 Item item = result.get();
                 ObjectItem objectItem = new ObjectItem();
+                objectItem.setLastModified(item.lastModified());
                 objectItem.setObjectName(item.objectName());
                 objectItem.setSize(item.size());
                 objectItems.add(objectItem);
@@ -367,16 +368,6 @@ public class MinioUtil {
         }
         return expiry;
     }
-
-//    @Scheduled(cron = "0 0 10,14,17 * * ?")
-//    public void timeRemoveObjects(String bucketName) {
-//        try {
-//            minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object("平台流水表分区脚本说明.pdf").build());
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
-
 
 }
 
