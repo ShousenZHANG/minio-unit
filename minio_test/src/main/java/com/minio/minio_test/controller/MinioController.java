@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
 import java.time.ZonedDateTime;
 import java.util.List;
 
@@ -63,7 +64,8 @@ public class MinioController {
     }
 
     /**
-     * 下载文件
+     * 通过minio的api进行下载文件
+     * TODO 本地单机测试通过，服务器下载到本地磁盘出现错误
      *
      * @param objectName 目标文件
      * @param fileName   下载
@@ -73,6 +75,22 @@ public class MinioController {
     public ResultResponse download(@RequestParam("bucketName") String bucketName, @RequestParam("object") String objectName, @RequestParam("file") String fileName) {
         String message = minioUtil.downloadToLocalDisk(bucketName, objectName, fileName);
         return ResultResponse.ok(ResultResponse.ok().getCode(), message);
+
+    }
+
+
+    /**
+     * 通过流的方式进行文件下载
+     *
+     * @param bucketName 文件桶名称
+     * @param fileName   下载的文件名称
+     * @param res        响应信息
+     * @return {@link ResultResponse}
+     */
+    @PostMapping("/downloadFile")
+    public ResultResponse downloadFile(@RequestParam("bucketName") String bucketName, @RequestParam("file") String fileName, HttpServletResponse res) {
+        minioUtil.download(bucketName, fileName, res);
+        return ResultResponse.ok(ResultResponse.ok().getCode());
     }
 
 
