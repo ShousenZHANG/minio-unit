@@ -1,7 +1,8 @@
-package com.minio.minio_test.utils;
+package com.minio.minio_test.service.serviceImpl;
 
 import com.minio.minio_test.exception.FileTransferException;
 import com.minio.minio_test.pojo.ObjectItem;
+import com.minio.minio_test.service.MinioService;
 import com.minio.minio_test.vo.ResultResponse;
 import io.minio.*;
 import io.minio.http.Method;
@@ -24,19 +25,11 @@ import java.util.*;
  * @date 2022/11/29
  */
 @Component
-public class MinioUtil {
-    /**
-     * minio客户端
-     */
+public class MinioServiceImpl implements MinioService {
+
     @Resource
     private MinioClient minioClient;
 
-    /**
-     * 查看存储bucket是否存在
-     *
-     * @param bucketName 存储桶名称
-     * @return boolean
-     */
     public Boolean bucketExists(String bucketName) {
         boolean found;
         try {
@@ -47,12 +40,6 @@ public class MinioUtil {
         return found;
     }
 
-    /**
-     * 创建存储bucket
-     *
-     * @param bucketName 存储bucket名称
-     * @return Boolean
-     */
     public String makeBucket(String bucketName) {
         try {
             if (!bucketExists(bucketName)) {
@@ -66,12 +53,6 @@ public class MinioUtil {
         return "Make bucket successfully";
     }
 
-    /**
-     * 删除存储桶bucket
-     *
-     * @param bucketName 存储bucket名称
-     * @return Boolean
-     */
     public String removeBucket(String bucketName) {
         try {
             if (bucketExists(bucketName)) {
@@ -85,14 +66,6 @@ public class MinioUtil {
         return "Remove bucket successfully！";
     }
 
-    /**
-     * 上传文件
-     *
-     * @param multipartFile 文件对象集合
-     * @param bucketName    文件桶名称
-     * @param directory     上传的路径地址
-     * @return {@link Boolean}
-     */
     public String upload(List<MultipartFile> multipartFile, String bucketName, String directory) {
         if (!bucketExists(bucketName)) {
             return "Bucket is not in existence！";
@@ -111,14 +84,6 @@ public class MinioUtil {
         return "Upload files successfully";
     }
 
-    /**
-     * 上传指定文件
-     *
-     * @param bucketName 文件桶名称
-     * @param objectName 桶内文件名称
-     * @param fileName   需要上传的文件全路径名称
-     * @return {@link Boolean}
-     */
     public Boolean uploadObject(String bucketName, String objectName, String fileName) {
         try {
             minioClient.uploadObject(UploadObjectArgs.builder().bucket(bucketName).object(objectName).filename(fileName).build());
@@ -128,13 +93,6 @@ public class MinioUtil {
         return true;
     }
 
-    /**
-     * 文件下载
-     *
-     * @param bucketName 存储桶bucket名称
-     * @param fileName   文件名称
-     * @param res        response
-     */
     public void download(String bucketName, String fileName, HttpServletResponse res) {
         GetObjectArgs objectArgs = GetObjectArgs.builder().bucket(bucketName)
                 .object(fileName).build();
@@ -162,13 +120,6 @@ public class MinioUtil {
         }
     }
 
-    /**
-     * 下载文件到本地磁盘位置
-     *
-     * @param bucketName   存储桶名称
-     * @param objectName   桶中文件名称
-     * @param diskFileName 本地磁盘文件名称，全路径
-     */
     public String downloadToLocalDisk(String bucketName, String objectName, String diskFileName) {
         try {
             if (!bucketExists(bucketName)) {
@@ -181,12 +132,6 @@ public class MinioUtil {
         return "Download to local disk successfully";
     }
 
-    /**
-     * 查看文件对象
-     *
-     * @param bucketName 存储bucket名称
-     * @return 存储bucket内文件对象信息
-     */
     public List<ObjectItem> listObjects(String bucketName) {
         Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucketName).build());
         List<ObjectItem> objectItems = new ArrayList<>();
@@ -205,12 +150,6 @@ public class MinioUtil {
         return objectItems;
     }
 
-    /**
-     * 查询桶的策略
-     *
-     * @param bucketName 桶名称
-     * @return {@link String}
-     */
     public String getBucketPolicy(String bucketName) {
         String message = null;
         try {
@@ -222,21 +161,11 @@ public class MinioUtil {
     }
 
 
-    /**
-     * 查询所有桶
-     *
-     * @return {@link List}<{@link Bucket}>
-     */
     @SneakyThrows
     private List<Bucket> listBuckets() {
         return minioClient.listBuckets();
     }
 
-    /**
-     * 获取所有桶的名称
-     *
-     * @return {@link List}<{@link String}>
-     */
     public List<String> listBucketNames() {
         List<Bucket> bucketList = listBuckets();
         List<String> bucketListName = new ArrayList<>();
@@ -246,13 +175,6 @@ public class MinioUtil {
         return bucketListName;
     }
 
-    /**
-     * 单个文件的删除
-     *
-     * @param bucketName 文件桶名称
-     * @param objectName 文件名称
-     * @return boolean
-     */
     public String removeObject(String bucketName, String objectName) {
         if (!bucketExists(bucketName)) {
             return "Bucket is not in existence！";
@@ -269,13 +191,6 @@ public class MinioUtil {
         return "Successfully deleted！";
     }
 
-    /**
-     * 批量删除多个文件
-     *
-     * @param bucketName  文件桶名称
-     * @param objectNames 文件名称
-     * @return {@link Boolean}
-     */
     public Boolean removeObjects(String bucketName, List<String> objectNames) {
         if (!bucketExists(bucketName)) {
             return false;
@@ -292,14 +207,6 @@ public class MinioUtil {
         return true;
     }
 
-    /**
-     * 创建上传文件对象的外链
-     *
-     * @param bucketName 存储桶名称
-     * @param objectName 要上传文件对象的名称
-     * @param expiry     过期时间(分钟) 最大为7天，超过7天的为默认最大值
-     * @return {@link String}
-     */
     public String createUploadUrl(String bucketName, String objectName, Integer expiry) {
         String url;
         expiry = expiryHandle(expiry);
@@ -318,26 +225,10 @@ public class MinioUtil {
         return url;
     }
 
-    /**
-     * 创建上传文件对象的外链(默认一个小时到期)
-     *
-     * @param bucketName 存储桶名称
-     * @param objectName 要上传文件对象的名称
-     * @return {@link String}
-     */
     public String createUploadUrl(String bucketName, String objectName) {
         return createUploadUrl(bucketName, objectName, 60);
     }
 
-    /**
-     * 获取访问对象的外链地址
-     * 获取文件的下载的url
-     *
-     * @param bucketName 存储桶名称
-     * @param objectName 对象名称
-     * @param expiry     过期时间（分钟） 最大为7天
-     * @return {@link String}
-     */
     public String getObjectUrl(String bucketName, String objectName, Integer expiry) {
         String url = null;
         expiry = expiryHandle(expiry);

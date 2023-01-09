@@ -1,7 +1,9 @@
 package com.minio.minio_test.controller;
 
+import com.minio.minio_test.config.JwtConfig;
+import com.minio.minio_test.config.MinIoClientProperties;
 import com.minio.minio_test.pojo.ObjectItem;
-import com.minio.minio_test.utils.MinioUtil;
+import com.minio.minio_test.service.MinioService;
 import com.minio.minio_test.vo.ResultResponse;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +13,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * minio 控制层
@@ -22,8 +25,28 @@ import java.util.List;
 public class MinioController {
 
     @Resource
-    private MinioUtil minioUtil;
+    private MinioService minioService;
 
+    @Resource
+    private MinIoClientProperties minIoClientProperties;
+
+    @Resource
+    private JwtConfig jwtConfig;
+
+
+    @PostMapping("/login")
+    public ResultResponse login(@RequestParam("accessKey") String accessKey,
+                                @RequestParam("secretKey") String secretKey) {
+        if (!(minIoClientProperties.getAccessKey().equals(accessKey) && minIoClientProperties.getSecretKey().equals(secretKey))) {
+            return ResultResponse.error("用户名或密码错误！");
+        }
+        // 这里模拟通过用户名和密码，从数据库查询userId
+        // 这里把userId转为String类型，实际开发中如果subject需要存userId，则可以JwtConfig的createToken方法的参数设置为Long类型
+//        String userId = 5 + "";
+        String uuidKey = UUID.randomUUID().toString();
+        String token = jwtConfig.createToken(uuidKey);
+        return ResultResponse.ok(token);
+    }
 
     /**
      * 上传文件信息
@@ -34,7 +57,7 @@ public class MinioController {
      */
     @PostMapping("/upload")
     public ResultResponse upload(List<MultipartFile> files, String bucketName) {
-        String message = minioUtil.upload(files, bucketName, null);
+        String message = minioService.upload(files, bucketName, null);
         return ResultResponse.ok(ResultResponse.ok().getCode(), message);
     }
 
@@ -47,7 +70,7 @@ public class MinioController {
      */
     @DeleteMapping
     public ResultResponse delete(String bucketName, String objectName) {
-        String message = minioUtil.removeObject(bucketName, objectName);
+        String message = minioService.removeObject(bucketName, objectName);
         return ResultResponse.ok(ResultResponse.ok().getCode(), message);
     }
 
@@ -59,7 +82,7 @@ public class MinioController {
      */
     @PostMapping("/makeBucket")
     public ResultResponse makeBucket(String bucketName) {
-        String message = minioUtil.makeBucket(bucketName);
+        String message = minioService.makeBucket(bucketName);
         return ResultResponse.ok(ResultResponse.ok().getCode(), message);
     }
 
@@ -73,7 +96,7 @@ public class MinioController {
      */
     @PostMapping("/download")
     public ResultResponse download(@RequestParam("bucketName") String bucketName, @RequestParam("object") String objectName, @RequestParam("file") String fileName) {
-        String message = minioUtil.downloadToLocalDisk(bucketName, objectName, fileName);
+        String message = minioService.downloadToLocalDisk(bucketName, objectName, fileName);
         return ResultResponse.ok(ResultResponse.ok().getCode(), message);
 
     }
@@ -89,7 +112,7 @@ public class MinioController {
      */
     @PostMapping("/downloadFile")
     public ResultResponse downloadFile(@RequestParam("bucketName") String bucketName, @RequestParam("file") String fileName, HttpServletResponse res) {
-        minioUtil.download(bucketName, fileName, res);
+        minioService.download(bucketName, fileName, res);
         return ResultResponse.ok(ResultResponse.ok().getCode());
     }
 
@@ -102,7 +125,7 @@ public class MinioController {
      */
     @GetMapping("/listObjects")
     public ResultResponse listObjects(String bucketName) {
-        List<ObjectItem> objectItems = minioUtil.listObjects(bucketName);
+        List<ObjectItem> objectItems = minioService.listObjects(bucketName);
         return ResultResponse.ok(objectItems);
     }
 
@@ -113,7 +136,7 @@ public class MinioController {
      */
     @GetMapping("/listBuckets")
     public ResultResponse listBuckets() {
-        List<String> listBucketNames = minioUtil.listBucketNames();
+        List<String> listBucketNames = minioService.listBucketNames();
         return ResultResponse.ok(listBucketNames);
     }
 
@@ -126,7 +149,7 @@ public class MinioController {
      */
     @DeleteMapping("/deleteBucket")
     public ResultResponse deleteBucket(String bucketName) {
-        String message = minioUtil.removeBucket(bucketName);
+        String message = minioService.removeBucket(bucketName);
         return ResultResponse.ok(ResultResponse.ok().getCode(), message);
     }
 
@@ -138,7 +161,36 @@ public class MinioController {
      */
     @GetMapping("/getBucketPolicy")
     public String getBucketPolicy(String bucketName) {
-        return minioUtil.getBucketPolicy(bucketName);
+        return minioService.getBucketPolicy(bucketName);
+    }
+
+    /**
+     * 创建文件外链链接
+     *
+     * @param bucketName 存储桶名称
+     * @param objectName 文件名称
+     * @param expires    过期时间
+     * @return {@link ResultResponse}
+     */
+    @PostMapping("/uploadUrl")
+    public ResultResponse createUploadUrl(String bucketName, String objectName, Integer expires) {
+        String uploadUrl = minioService.createUploadUrl(bucketName, objectName, expires);
+        return ResultResponse.ok(uploadUrl);
+    }
+
+
+    /**
+     * 创建下载文件外链链接
+     *
+     * @param bucketName 存储桶名称
+     * @param objectName 文件名称
+     * @param expires    过期时间
+     * @return {@link ResultResponse}
+     */
+    @PostMapping("/getObjectUrl")
+    public ResultResponse getObjectUrl(String bucketName, String objectName, Integer expires) {
+        String objectUrl = minioService.getObjectUrl(bucketName, objectName, expires);
+        return ResultResponse.ok(objectUrl);
     }
 
     /**
@@ -149,14 +201,14 @@ public class MinioController {
         //当前时间前一天的时间
         ZonedDateTime rangeTime = ZonedDateTime.now().minusDays(1);
         //创建定期清除策略的文件存储桶
-        minioUtil.makeBucket("miniodemo");
+        minioService.makeBucket("miniodemo");
         //删除一天之前的文件内容
-        List<ObjectItem> clearIntervalsBucketList = minioUtil.listObjects("miniodemo");
+        List<ObjectItem> clearIntervalsBucketList = minioService.listObjects("miniodemo");
         for (ObjectItem objectItem : clearIntervalsBucketList) {
             ZonedDateTime lastModified = objectItem.getLastModified();
             boolean flag = lastModified.isBefore(rangeTime);
             if (flag) {
-                minioUtil.removeObject("miniodemo", objectItem.getObjectName());
+                minioService.removeObject("miniodemo", objectItem.getObjectName());
             }
         }
     }
