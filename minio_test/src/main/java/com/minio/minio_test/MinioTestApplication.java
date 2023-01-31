@@ -1,6 +1,6 @@
 package com.minio.minio_test;
 
-import com.minio.minio_test.config.MinIoClientProperties;
+import com.minio.minio_test.config.MinioClientProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -13,7 +13,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * @author zhang
  * @date 2022/11/29
  */
-@EnableConfigurationProperties({MinIoClientProperties.class})
+@EnableConfigurationProperties({MinioClientProperties.class})
 @ComponentScan(basePackages = "com.minio.minio_test")
 @EnableAutoConfiguration
 @EnableScheduling

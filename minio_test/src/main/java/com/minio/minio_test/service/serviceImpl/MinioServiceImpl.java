@@ -1,14 +1,19 @@
 package com.minio.minio_test.service.serviceImpl;
 
-import com.minio.minio_test.exception.FileTransferException;
-import com.minio.minio_test.pojo.ObjectItem;
+import com.minio.minio_test.Response.ResponseData;
+import com.minio.minio_test.exception.BusinessException;
+import com.minio.minio_test.vo.BucketVO;
+import com.minio.minio_test.vo.ObjectItem;
 import com.minio.minio_test.service.MinioService;
-import com.minio.minio_test.vo.ResultResponse;
 import io.minio.*;
 import io.minio.http.Method;
 import io.minio.messages.*;
 import lombok.SneakyThrows;
+import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.FastByteArrayOutputStream;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,7 +21,11 @@ import javax.annotation.Resource;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.InputStream;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * minio工具类
@@ -27,6 +36,8 @@ import java.util.*;
 @Component
 public class MinioServiceImpl implements MinioService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(MinioServiceImpl.class);
+
     @Resource
     private MinioClient minioClient;
 
@@ -35,7 +46,7 @@ public class MinioServiceImpl implements MinioService {
         try {
             found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
         } catch (Exception e) {
-            throw new FileTransferException(ResultResponse.error().getCode(), "Existence of bucket has error!", e);
+            throw new BusinessException(ResponseData.error().getCode(), "Existence of bucket has error!", e);
         }
         return found;
     }
@@ -48,7 +59,7 @@ public class MinioServiceImpl implements MinioService {
                 return "Bucket is already in existence";
             }
         } catch (Exception e) {
-            throw new FileTransferException(ResultResponse.error().getCode(), "Make bucket has error!", e);
+            throw new BusinessException(ResponseData.error().getCode(), "Make bucket has error!", e);
         }
         return "Make bucket successfully";
     }
@@ -61,24 +72,25 @@ public class MinioServiceImpl implements MinioService {
                 return "Bucket is not in existence！";
             }
         } catch (Exception e) {
-            throw new FileTransferException(ResultResponse.error().getCode(), "Remove bucket has error!", e);
+            throw new BusinessException(ResponseData.error().getCode(), "Remove bucket has error!", e);
         }
         return "Remove bucket successfully！";
     }
 
-    public String upload(List<MultipartFile> multipartFile, String bucketName, String directory) {
+    public String upload(List<MultipartFile> multipartFile, String bucketName) {
         if (!bucketExists(bucketName)) {
             return "Bucket is not in existence！";
         }
         for (MultipartFile file : multipartFile) {
             try {
                 InputStream in = file.getInputStream();
-                directory = Optional.ofNullable(directory).orElse("");
-                String minFileName = directory + file.getOriginalFilename();
+                String minFileName = file.getOriginalFilename();
                 minioClient.putObject(PutObjectArgs.builder().bucket(bucketName).object(minFileName).stream(in, in.available(), -1).contentType(file.getContentType()).build());
+                LOGGER.info("上传文件-成功.文件名:{}, 存储桶名:{}", minFileName, bucketName);
                 in.close();
             } catch (Exception e) {
-                throw new FileTransferException(ResultResponse.error().getCode(), "Upload file has error!", e);
+                LOGGER.error("上传文件-失败:" + e.getMessage(), e);
+                throw new BusinessException("Upload files unsuccessfully");
             }
         }
         return "Upload files successfully";
@@ -88,35 +100,25 @@ public class MinioServiceImpl implements MinioService {
         try {
             minioClient.uploadObject(UploadObjectArgs.builder().bucket(bucketName).object(objectName).filename(fileName).build());
         } catch (Exception e) {
-            throw new FileTransferException(ResultResponse.error().getCode(), "Upload object has error!", e);
+            throw new BusinessException(ResponseData.error().getCode(), "Upload object has error!", e);
         }
         return true;
     }
 
-    public void download(String bucketName, String fileName, HttpServletResponse res) {
-        GetObjectArgs objectArgs = GetObjectArgs.builder().bucket(bucketName)
-                .object(fileName).build();
-        try (GetObjectResponse response = minioClient.getObject(objectArgs)) {
-            byte[] buf = new byte[1024];
-            int len;
-            try (FastByteArrayOutputStream os = new FastByteArrayOutputStream()) {
-                while ((len = response.read(buf)) != -1) {
-                    os.write(buf, 0, len);
-                }
-                os.flush();
-                byte[] bytes = os.toByteArray();
-                res.setCharacterEncoding("utf-8");
-                //设置强制下载关闭
-                res.setContentType("application/force-download");
-                res.addHeader("Content-Disposition", "attachment;fileName=" + fileName);
-                try (ServletOutputStream stream = res.getOutputStream()) {
-                    stream.write(bytes);
-                    stream.flush();
-                }
-            }
+    public void download(String bucketName, String fileName, HttpServletResponse response) {
+        try {
+            response.setHeader("Content-Disposition", "attachment;filename=" + fileName);
+            response.setContentType("application/force-download");
+            response.setCharacterEncoding("UTF-8");
+            GetObjectArgs objectArgs = GetObjectArgs.builder().bucket(bucketName)
+                    .object(fileName).build();
+            GetObjectResponse object = minioClient.getObject(objectArgs);
+            IOUtils.copy(object, response.getOutputStream());
+            LOGGER.info("下载文件-成功.文件名:{}, 存储桶名:{}", fileName, bucketName);
+            IOUtils.closeQuietly(object);
         } catch (Exception e) {
-            throw new FileTransferException(ResultResponse.error().getCode(), "Download object has error!", e);
-
+            LOGGER.error("下载文件失败-失败:" + e.getMessage(), e);
+            throw new BusinessException("Download object has error!");
         }
     }
 
@@ -127,7 +129,7 @@ public class MinioServiceImpl implements MinioService {
             }
             minioClient.downloadObject(DownloadObjectArgs.builder().bucket(bucketName).object(objectName).filename(diskFileName).build());
         } catch (Exception e) {
-            throw new FileTransferException(ResultResponse.error().getCode(), "Download to local disk has error!", e);
+            throw new BusinessException(ResponseData.error().getCode(), "Download to local disk has error!", e);
         }
         return "Download to local disk successfully";
     }
@@ -145,7 +147,7 @@ public class MinioServiceImpl implements MinioService {
                 objectItems.add(objectItem);
             }
         } catch (Exception e) {
-            throw new FileTransferException(ResultResponse.error().getCode(), "List objects has error!", e);
+            throw new BusinessException(ResponseData.error().getCode(), "List objects has error!", e);
         }
         return objectItems;
     }
@@ -155,7 +157,7 @@ public class MinioServiceImpl implements MinioService {
         try {
             message = minioClient.getBucketPolicy(GetBucketPolicyArgs.builder().bucket(bucketName).build());
         } catch (Exception e) {
-            throw new FileTransferException(ResultResponse.error().getCode(), "Get bucket policy has error!", e);
+            throw new BusinessException(ResponseData.error().getCode(), "Get bucket policy has error!", e);
         }
         return message;
     }
@@ -166,13 +168,22 @@ public class MinioServiceImpl implements MinioService {
         return minioClient.listBuckets();
     }
 
-    public List<String> listBucketNames() {
-        List<Bucket> bucketList = listBuckets();
-        List<String> bucketListName = new ArrayList<>();
-        for (Bucket bucket : bucketList) {
-            bucketListName.add(bucket.name());
+    public List<BucketVO> listBucketNames() {
+        List<Bucket> list = listBuckets();
+        if (!(CollectionUtils.isEmpty(list))) {
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .withZone(ZoneId.of("Asia/Shanghai"));
+
+            return list.stream().map(o -> {
+                ZonedDateTime creationDate = o.creationDate();
+                BucketVO vo = new BucketVO();
+                vo.setName(o.name());
+                vo.setCreateTime(creationDate.format(formatter));
+                return vo;
+            }).collect(Collectors.toList());
         }
-        return bucketListName;
+        return null;
     }
 
     public String removeObject(String bucketName, String objectName) {
@@ -186,7 +197,7 @@ public class MinioServiceImpl implements MinioService {
                             .object(objectName)
                             .build());
         } catch (Exception e) {
-            throw new FileTransferException(ResultResponse.error().getCode(), "Remove object has error!", e);
+            throw new BusinessException(ResponseData.error().getCode(), "Remove object has error!", e);
         }
         return "Successfully deleted！";
     }
@@ -220,7 +231,7 @@ public class MinioServiceImpl implements MinioService {
                             .build()
             );
         } catch (Exception e) {
-            throw new FileTransferException(ResultResponse.error().getCode(), "Create upload url has error!", e);
+            throw new BusinessException(ResponseData.error().getCode(), "Create upload url has error!", e);
         }
         return url;
     }
@@ -242,7 +253,7 @@ public class MinioServiceImpl implements MinioService {
                             .build()
             );
         } catch (Exception e) {
-            throw new FileTransferException(ResultResponse.error().getCode(), "Get object url has error!", e);
+            throw new BusinessException(ResponseData.error().getCode(), "Get object url has error!", e);
         }
         return url;
     }

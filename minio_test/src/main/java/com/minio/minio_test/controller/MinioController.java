@@ -1,10 +1,8 @@
 package com.minio.minio_test.controller;
 
-import com.minio.minio_test.config.JwtConfig;
-import com.minio.minio_test.config.MinIoClientProperties;
-import com.minio.minio_test.pojo.ObjectItem;
+import com.minio.minio_test.Response.ResponseData;
+import com.minio.minio_test.vo.ObjectItem;
 import com.minio.minio_test.service.MinioService;
-import com.minio.minio_test.vo.ResultResponse;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,7 +11,6 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * minio 控制层
@@ -27,38 +24,18 @@ public class MinioController {
     @Resource
     private MinioService minioService;
 
-    @Resource
-    private MinIoClientProperties minIoClientProperties;
-
-    @Resource
-    private JwtConfig jwtConfig;
-
-
-    @PostMapping("/login")
-    public ResultResponse login(@RequestParam("accessKey") String accessKey,
-                                @RequestParam("secretKey") String secretKey) {
-        if (!(minIoClientProperties.getAccessKey().equals(accessKey) && minIoClientProperties.getSecretKey().equals(secretKey))) {
-            return ResultResponse.error("用户名或密码错误！");
-        }
-        // 这里模拟通过用户名和密码，从数据库查询userId
-        // 这里把userId转为String类型，实际开发中如果subject需要存userId，则可以JwtConfig的createToken方法的参数设置为Long类型
-//        String userId = 5 + "";
-        String uuidKey = UUID.randomUUID().toString();
-        String token = jwtConfig.createToken(uuidKey);
-        return ResultResponse.ok(token);
-    }
-
     /**
      * 上传文件信息
      *
      * @param files      多文件
      * @param bucketName 存储桶名称
-     * @return {@link ResultResponse}
+     * @return {@link ResponseData}
      */
+    @ResponseBody
     @PostMapping("/upload")
-    public ResultResponse upload(List<MultipartFile> files, String bucketName) {
-        String message = minioService.upload(files, bucketName, null);
-        return ResultResponse.ok(ResultResponse.ok().getCode(), message);
+    public ResponseData upload(List<MultipartFile> files, String bucketName) {
+        String message = minioService.upload(files, bucketName);
+        return ResponseData.success(message);
     }
 
     /**
@@ -66,12 +43,12 @@ public class MinioController {
      *
      * @param bucketName 文件桶名称
      * @param objectName 文件名称
-     * @return {@link ResultResponse}
+     * @return {@link ResponseData}
      */
     @DeleteMapping
-    public ResultResponse delete(String bucketName, String objectName) {
+    public ResponseData delete(String bucketName, String objectName) {
         String message = minioService.removeObject(bucketName, objectName);
-        return ResultResponse.ok(ResultResponse.ok().getCode(), message);
+        return ResponseData.success(message);
     }
 
     /**
@@ -81,9 +58,9 @@ public class MinioController {
      * @return {@link String}
      */
     @PostMapping("/makeBucket")
-    public ResultResponse makeBucket(String bucketName) {
+    public ResponseData makeBucket(String bucketName) {
         String message = minioService.makeBucket(bucketName);
-        return ResultResponse.ok(ResultResponse.ok().getCode(), message);
+        return ResponseData.success(message);
     }
 
     /**
@@ -95,9 +72,9 @@ public class MinioController {
      * @return {@link String}
      */
     @PostMapping("/download")
-    public ResultResponse download(@RequestParam("bucketName") String bucketName, @RequestParam("object") String objectName, @RequestParam("file") String fileName) {
+    public ResponseData download(@RequestParam("bucketName") String bucketName, @RequestParam("object") String objectName, @RequestParam("file") String fileName) {
         String message = minioService.downloadToLocalDisk(bucketName, objectName, fileName);
-        return ResultResponse.ok(ResultResponse.ok().getCode(), message);
+        return ResponseData.success(message);
 
     }
 
@@ -108,12 +85,12 @@ public class MinioController {
      * @param bucketName 文件桶名称
      * @param fileName   下载的文件名称
      * @param res        响应信息
-     * @return {@link ResultResponse}
+     * @return {@link ResponseData}
      */
+    @ResponseBody
     @PostMapping("/downloadFile")
-    public ResultResponse downloadFile(@RequestParam("bucketName") String bucketName, @RequestParam("file") String fileName, HttpServletResponse res) {
+    public void downloadFile(@RequestParam("bucketName") String bucketName, @RequestParam("file") String fileName, HttpServletResponse res) {
         minioService.download(bucketName, fileName, res);
-        return ResultResponse.ok(ResultResponse.ok().getCode());
     }
 
 
@@ -124,20 +101,20 @@ public class MinioController {
      * @return {@link List}<{@link ObjectItem}>
      */
     @GetMapping("/listObjects")
-    public ResultResponse listObjects(String bucketName) {
+    public ResponseData listObjects(String bucketName) {
         List<ObjectItem> objectItems = minioService.listObjects(bucketName);
-        return ResultResponse.ok(objectItems);
+        return ResponseData.success(objectItems);
     }
 
     /**
      * 查询所有桶名称
      *
-     * @return {@link ResultResponse}
+     * @return {@link ResponseData}
      */
+    @ResponseBody
     @GetMapping("/listBuckets")
-    public ResultResponse listBuckets() {
-        List<String> listBucketNames = minioService.listBucketNames();
-        return ResultResponse.ok(listBucketNames);
+    public ResponseData listBuckets() {
+        return ResponseData.success(minioService.listBucketNames());
     }
 
 
@@ -148,9 +125,9 @@ public class MinioController {
      * @return {@link String}
      */
     @DeleteMapping("/deleteBucket")
-    public ResultResponse deleteBucket(String bucketName) {
+    public ResponseData deleteBucket(String bucketName) {
         String message = minioService.removeBucket(bucketName);
-        return ResultResponse.ok(ResultResponse.ok().getCode(), message);
+        return ResponseData.success(message);
     }
 
     /**
@@ -170,12 +147,12 @@ public class MinioController {
      * @param bucketName 存储桶名称
      * @param objectName 文件名称
      * @param expires    过期时间
-     * @return {@link ResultResponse}
+     * @return {@link ResponseData}
      */
     @PostMapping("/uploadUrl")
-    public ResultResponse createUploadUrl(String bucketName, String objectName, Integer expires) {
+    public ResponseData createUploadUrl(String bucketName, String objectName, Integer expires) {
         String uploadUrl = minioService.createUploadUrl(bucketName, objectName, expires);
-        return ResultResponse.ok(uploadUrl);
+        return ResponseData.success("上传文件外链链接", uploadUrl);
     }
 
 
@@ -185,12 +162,12 @@ public class MinioController {
      * @param bucketName 存储桶名称
      * @param objectName 文件名称
      * @param expires    过期时间
-     * @return {@link ResultResponse}
+     * @return {@link ResponseData}
      */
     @PostMapping("/getObjectUrl")
-    public ResultResponse getObjectUrl(String bucketName, String objectName, Integer expires) {
+    public ResponseData getObjectUrl(String bucketName, String objectName, Integer expires) {
         String objectUrl = minioService.getObjectUrl(bucketName, objectName, expires);
-        return ResultResponse.ok(objectUrl);
+        return ResponseData.success("下载文件外链链接", objectUrl);
     }
 
     /**

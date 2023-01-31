@@ -1,4 +1,4 @@
-package com.minio.minio_test.pojo;
+package com.minio.minio_test.vo;
 
 import lombok.Data;
 

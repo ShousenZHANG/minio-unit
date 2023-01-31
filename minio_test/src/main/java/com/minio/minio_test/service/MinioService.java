@@ -1,6 +1,7 @@
 package com.minio.minio_test.service;
 
-import com.minio.minio_test.pojo.ObjectItem;
+import com.minio.minio_test.vo.BucketVO;
+import com.minio.minio_test.vo.ObjectItem;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
@@ -43,10 +44,9 @@ public interface MinioService {
      *
      * @param multipartFile 文件对象集合
      * @param bucketName    文件桶名称
-     * @param directory     上传的路径地址
      * @return {@link String}
      */
-    String upload(List<MultipartFile> multipartFile, String bucketName, String directory);
+    String upload(List<MultipartFile> multipartFile, String bucketName);
 
     /**
      * 上传指定文件
@@ -98,7 +98,7 @@ public interface MinioService {
      *
      * @return {@link List}<{@link String}>
      */
-    List<String> listBucketNames();
+    List<BucketVO> listBucketNames();
 
     /**
      * 单个文件的删除

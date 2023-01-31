@@ -1,17 +1,19 @@
+server:
+  address: 0.0.0.0
+  port: 9094
+
+
 spring:
   # 配置文件上传大小限制
   servlet:
     multipart:
       max-file-size: 200MB
       max-request-size: 200MB
-minio:
-  endpoint: http://124.70.53.210:9080
-  accessKey: minio_user
-  secretKey: 528528528
 
-server:
-  address: 0.0.0.0
-  port: 9093
+minio:
+  endpoint: http://localhost:9000
+  accessKey: minioadmin
+  secretKey: minioadmin
 
 
 config:
