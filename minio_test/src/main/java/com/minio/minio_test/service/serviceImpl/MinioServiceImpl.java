@@ -3,7 +3,7 @@ package com.minio.minio_test.service.serviceImpl;
 import com.minio.minio_test.Response.ResponseData;
 import com.minio.minio_test.exception.BusinessException;
 import com.minio.minio_test.vo.BucketVO;
-import com.minio.minio_test.vo.ObjectItem;
+import com.minio.minio_test.vo.FileItemVO;
 import com.minio.minio_test.service.MinioService;
 import io.minio.*;
 import io.minio.http.Method;
@@ -14,13 +14,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.FastByteArrayOutputStream;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
-import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -59,7 +64,8 @@ public class MinioServiceImpl implements MinioService {
                 return "Bucket is already in existence";
             }
         } catch (Exception e) {
-            throw new BusinessException(ResponseData.error().getCode(), "Make bucket has error!", e);
+            LOGGER.error("创建文件桶失败-失败:" + e.getMessage(), e);
+            throw new BusinessException("Make bucket has error!");
         }
         return "Make bucket successfully";
     }
@@ -72,7 +78,8 @@ public class MinioServiceImpl implements MinioService {
                 return "Bucket is not in existence！";
             }
         } catch (Exception e) {
-            throw new BusinessException(ResponseData.error().getCode(), "Remove bucket has error!", e);
+            LOGGER.error("删除文件桶失败-失败:" + e.getMessage(), e);
+            throw new BusinessException("Remove bucket has error!");
         }
         return "Remove bucket successfully！";
     }
@@ -128,36 +135,54 @@ public class MinioServiceImpl implements MinioService {
                 return "Bucket is not in existence！";
             }
             minioClient.downloadObject(DownloadObjectArgs.builder().bucket(bucketName).object(objectName).filename(diskFileName).build());
+            LOGGER.info("下载文件到本地磁盘-成功.文件名:{}, 存储桶名:{}", objectName, bucketName);
         } catch (Exception e) {
-            throw new BusinessException(ResponseData.error().getCode(), "Download to local disk has error!", e);
+            LOGGER.error("下载文件到本地磁盘失败-失败:" + e.getMessage(), e);
+            throw new BusinessException("Download to local disk has error!");
         }
         return "Download to local disk successfully";
     }
 
-    public List<ObjectItem> listObjects(String bucketName) {
-        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder().bucket(bucketName).build());
-        List<ObjectItem> objectItems = new ArrayList<>();
+    public List<FileItemVO> listObjects(String bucketName) {
         try {
-            for (Result<Item> result : results) {
-                Item item = result.get();
-                ObjectItem objectItem = new ObjectItem();
-                objectItem.setLastModified(item.lastModified());
-                objectItem.setObjectName(item.objectName());
-                objectItem.setSize(item.size());
-                objectItems.add(objectItem);
+            if (!bucketExists(bucketName)) {
+                return null;
+            }
+            ListObjectsArgs args = ListObjectsArgs.builder().bucket(bucketName).build();
+            Iterable<Result<Item>> it = minioClient.listObjects(args);
+            if (it != null) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        .withZone(ZoneId.of("Asia/Shanghai"));
+                List<FileItemVO> list = new ArrayList<>();
+                FileItemVO vo;
+                for (Result<Item> result : it) {
+                    Item item = result.get();
+                    if (item != null) {
+                        vo = FileItemVO.builder().name(item.objectName())
+                                .ownerName(item.owner() == null ? "" : item.owner().displayName()).size(item.size())
+                                .isDir(item.isDir()).encodingType("").build();
+                        if (item.lastModified() != null) {
+                            vo.setLastModifyTime(item.lastModified().format(formatter));
+                        }
+                        list.add(vo);
+                    }
+                }
+                return list;
             }
         } catch (Exception e) {
-            throw new BusinessException(ResponseData.error().getCode(), "List objects has error!", e);
+            LOGGER.error("查询目标文件桶中文件失败-失败:" + e.getMessage(), e);
+            throw new BusinessException("List objects has error!");
         }
-        return objectItems;
+        return null;
     }
 
     public String getBucketPolicy(String bucketName) {
-        String message = null;
+        String message;
         try {
             message = minioClient.getBucketPolicy(GetBucketPolicyArgs.builder().bucket(bucketName).build());
         } catch (Exception e) {
-            throw new BusinessException(ResponseData.error().getCode(), "Get bucket policy has error!", e);
+            LOGGER.error("查询文件桶策略失败-失败:" + e.getMessage(), e);
+            throw new BusinessException("Get bucket policy has error!");
         }
         return message;
     }
@@ -197,7 +222,8 @@ public class MinioServiceImpl implements MinioService {
                             .object(objectName)
                             .build());
         } catch (Exception e) {
-            throw new BusinessException(ResponseData.error().getCode(), "Remove object has error!", e);
+            LOGGER.error("删除文件失败-失败:" + e.getMessage(), e);
+            throw new BusinessException("Remove object has error!");
         }
         return "Successfully deleted！";
     }
@@ -218,6 +244,25 @@ public class MinioServiceImpl implements MinioService {
         return true;
     }
 
+    public String getObjectUrl(String bucketName, String objectName, Integer expiry) {
+        String url;
+        expiry = expiryHandle(expiry);
+        try {
+            url = minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .expiry(expiry)
+                            .build()
+            );
+        } catch (Exception e) {
+            LOGGER.error("获取文件下载地址失败-失败:" + e.getMessage(), e);
+            throw new BusinessException("Get object url has error!");
+        }
+        return url;
+    }
+
     public String createUploadUrl(String bucketName, String objectName, Integer expiry) {
         String url;
         expiry = expiryHandle(expiry);
@@ -231,31 +276,79 @@ public class MinioServiceImpl implements MinioService {
                             .build()
             );
         } catch (Exception e) {
-            throw new BusinessException(ResponseData.error().getCode(), "Create upload url has error!", e);
+            LOGGER.error("获取文件上传地址失败-失败:" + e.getMessage(), e);
+            throw new BusinessException("Create upload url has error!");
         }
         return url;
     }
 
-    public String createUploadUrl(String bucketName, String objectName) {
-        return createUploadUrl(bucketName, objectName, 60);
-    }
+    public void downloadUrl(HttpServletRequest request, HttpServletResponse response) {
+        LOGGER.info("下载文件-开始");
+        // 网络链接（文件的http链接）
+        String filenamerel = request.getParameter("filenamerel");
+        // 文件名
+        String fileName = request.getParameter("filename");
 
-    public String getObjectUrl(String bucketName, String objectName, Integer expiry) {
-        String url = null;
-        expiry = expiryHandle(expiry);
+        if (StringUtils.isEmpty(fileName)) {
+            fileName = this.getFileNameFormUrl(filenamerel);
+        }
+        InputStream is = null;
+        OutputStream os = null;
+
         try {
-            url = minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET)
-                            .bucket(bucketName)
-                            .object(objectName)
-                            .expiry(expiry)
-                            .build()
-            );
+            // 从网络读取文件
+            URL url = new URL(filenamerel);
+            URLConnection conn = url.openConnection();
+
+            is = conn.getInputStream();
+            os = response.getOutputStream();
+
+            String userAgent = request.getHeader("user-agent").toLowerCase();
+
+            if (userAgent.contains("msie") || userAgent.contains("like gecko")) {
+                // win10 ie edge 浏览器 和其他系统的ie
+                fileName = URLEncoder.encode(fileName, "UTF-8");
+            } else {
+                // 文件名转码
+                fileName = new String(fileName.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1);
+            }
+            response.setContentType("application/octet-stream; charset=UTF-8");
+            response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+
+            // 文件缓存区
+            byte[] bytes = new byte[1024];
+            // 判断输入流中的数据是否已经读完的标致
+            int len;
+            while ((len = is.read(bytes)) > 0) {
+                os.write(bytes, 0, len);
+            }
+            LOGGER.info("下载文件-结束.文件:{}", filenamerel);
         } catch (Exception e) {
-            throw new BusinessException(ResponseData.error().getCode(), "Get object url has error!", e);
+            LOGGER.error(String.format("下载文件-失败!文件:%s", filenamerel), e);
+            throw new BusinessException("Download file from url has error!");
+        } finally {
+            IOUtils.closeQuietly(os, is);
         }
-        return url;
+    }
+
+    /**
+     * 获取HTTP中的文件名
+     *
+     * @param filenamerel HTTP链接
+     * @return {@link String}
+     */
+    private String getFileNameFormUrl(String filenamerel) {
+        if (StringUtils.isEmpty(filenamerel)) {
+            return "";
+        }
+        int lastIdx = filenamerel.lastIndexOf("/");
+
+        String fileName = "";
+
+        if (lastIdx >= 0) {
+            fileName = filenamerel.substring(lastIdx + 1);
+        }
+        return fileName;
     }
 
     /**

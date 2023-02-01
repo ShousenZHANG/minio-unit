@@ -1,9 +1,10 @@
 package com.minio.minio_test.service;
 
 import com.minio.minio_test.vo.BucketVO;
-import com.minio.minio_test.vo.ObjectItem;
+import com.minio.minio_test.vo.FileItemVO;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
@@ -83,7 +84,7 @@ public interface MinioService {
      * @param bucketName 存储bucket名称
      * @return 存储bucket内文件对象信息
      */
-    List<ObjectItem> listObjects(String bucketName);
+    List<FileItemVO> listObjects(String bucketName);
 
     /**
      * 查询桶的策略
@@ -119,25 +120,6 @@ public interface MinioService {
     Boolean removeObjects(String bucketName, List<String> objectNames);
 
     /**
-     * 创建上传文件对象的外链
-     *
-     * @param bucketName 存储桶名称
-     * @param objectName 要上传文件对象的名称
-     * @param expiry     过期时间(分钟) 最大为7天，超过7天的为默认最大值
-     * @return {@link String}
-     */
-    String createUploadUrl(String bucketName, String objectName, Integer expiry);
-
-    /**
-     * 创建上传文件对象的外链(默认一个小时到期)
-     *
-     * @param bucketName 存储桶名称
-     * @param objectName 要上传文件对象的名称
-     * @return {@link String}
-     */
-    String createUploadUrl(String bucketName, String objectName);
-
-    /**
      * 获取访问对象的外链地址
      * 获取文件的下载的url
      *
@@ -148,5 +130,21 @@ public interface MinioService {
      */
     String getObjectUrl(String bucketName, String objectName, Integer expiry);
 
+    /**
+     * 创建上传文件对象的外链(默认一个小时到期)
+     *
+     * @param bucketName 存储桶名称
+     * @param objectName 要上传文件对象的名称
+     * @return {@link String}
+     */
+    String createUploadUrl(String bucketName, String objectName, Integer expiry);
+
+    /**
+     * 通过文件链接地址进行文件下载
+     *
+     * @param request  请求
+     * @param response 响应
+     */
+    void downloadUrl(HttpServletRequest request, HttpServletResponse response);
 
 }
