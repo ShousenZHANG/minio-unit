@@ -33,8 +33,8 @@ public class MinioController {
     @ResponseBody
     @PostMapping("/upload")
     public ResponseData upload(List<MultipartFile> files, String bucketName) {
-        String message = minioService.upload(files, bucketName);
-        return ResponseData.success(message);
+        minioService.upload(files, bucketName);
+        return ResponseData.success("上传文件成功");
     }
 
     /**
@@ -47,8 +47,8 @@ public class MinioController {
     @ResponseBody
     @DeleteMapping("/deleteObject")
     public ResponseData delete(String bucketName, String objectName) {
-        String message = minioService.removeObject(bucketName, objectName);
-        return ResponseData.success(message);
+        minioService.removeObject(bucketName, objectName);
+        return ResponseData.success("删除文件成功");
     }
 
     /**
@@ -60,23 +60,22 @@ public class MinioController {
     @ResponseBody
     @PostMapping("/makeBucket")
     public ResponseData makeBucket(String bucketName) {
-        String message = minioService.makeBucket(bucketName);
-        return ResponseData.success(message);
+        minioService.makeBucket(bucketName);
+        return ResponseData.success("创建文件桶成功");
     }
 
     /**
      * 通过minio的api进行下载文件
-     * TODO 本地单机测试通过，服务器下载到本地磁盘出现错误
      *
      * @param objectName 目标文件
      * @param fileName   下载
      * @return {@link String}
      */
     @ResponseBody
-    @PostMapping("/download")
-    public ResponseData download(@RequestParam("bucketName") String bucketName, @RequestParam("object") String objectName, @RequestParam("file") String fileName) {
-        String message = minioService.downloadToLocalDisk(bucketName, objectName, fileName);
-        return ResponseData.success(message);
+    @PostMapping("/downloadToLocal")
+    public ResponseData download(@RequestParam("bucketName") String bucketName, @RequestParam("object") String objectName, @RequestParam("localFile") String fileName) {
+        minioService.downloadToLocalDisk(bucketName, objectName, fileName);
+        return ResponseData.success("下载文件成功");
 
     }
 
@@ -130,8 +129,8 @@ public class MinioController {
     @ResponseBody
     @DeleteMapping("/deleteBucket")
     public ResponseData deleteBucket(String bucketName) {
-        String message = minioService.removeBucket(bucketName);
-        return ResponseData.success(message);
+        minioService.removeBucket(bucketName);
+        return ResponseData.success("删除文件桶成功");
     }
 
     /**

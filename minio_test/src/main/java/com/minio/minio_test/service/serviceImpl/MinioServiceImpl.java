@@ -1,11 +1,11 @@
 package com.minio.minio_test.service.serviceImpl;
 
-import com.minio.minio_test.Response.ResponseData;
 import com.minio.minio_test.exception.BusinessException;
 import com.minio.minio_test.vo.BucketVO;
 import com.minio.minio_test.vo.FileItemVO;
 import com.minio.minio_test.service.MinioService;
 import io.minio.*;
+import io.minio.errors.*;
 import io.minio.http.Method;
 import io.minio.messages.*;
 import lombok.SneakyThrows;
@@ -20,12 +20,15 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -50,103 +53,103 @@ public class MinioServiceImpl implements MinioService {
         boolean found;
         try {
             found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
-        } catch (Exception e) {
-            throw new BusinessException(ResponseData.error().getCode(), "Existence of bucket has error!", e);
+        } catch (MinioException | IOException | NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new BusinessException(e.getMessage());
         }
         return found;
     }
 
-    public String makeBucket(String bucketName) {
+    public void makeBucket(String bucketName) {
         try {
             if (!bucketExists(bucketName)) {
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
+                LOGGER.info("创建文件桶成功.bucketName为:{}", bucketName);
             } else {
-                return "Bucket is already in existence";
+                throw new BusinessException("bucket already exit");
             }
-        } catch (Exception e) {
+        } catch (MinioException | IOException | NoSuchAlgorithmException | InvalidKeyException e) {
             LOGGER.error("创建文件桶失败-失败:" + e.getMessage(), e);
-            throw new BusinessException("Make bucket has error!");
+            throw new BusinessException(e.getMessage());
         }
-        return "Make bucket successfully";
     }
 
-    public String removeBucket(String bucketName) {
+    public void removeBucket(String bucketName) {
         try {
             if (bucketExists(bucketName)) {
                 minioClient.removeBucket(RemoveBucketArgs.builder().bucket(bucketName).build());
             } else {
-                return "Bucket is not in existence！";
+                throw new BusinessException("bucket does not exit");
             }
-        } catch (Exception e) {
+        } catch (MinioException | IOException | NoSuchAlgorithmException | InvalidKeyException e) {
             LOGGER.error("删除文件桶失败-失败:" + e.getMessage(), e);
-            throw new BusinessException("Remove bucket has error!");
+            throw new BusinessException(e.getMessage());
         }
-        return "Remove bucket successfully！";
     }
 
-    public String upload(List<MultipartFile> multipartFile, String bucketName) {
+    public void upload(List<MultipartFile> multipartFile, String bucketName) {
         if (!bucketExists(bucketName)) {
-            return "Bucket is not in existence！";
+            throw new BusinessException("Bucket does not exit");
         }
+        InputStream in = null;
         for (MultipartFile file : multipartFile) {
             try {
-                InputStream in = file.getInputStream();
+                in = file.getInputStream();
                 String minFileName = file.getOriginalFilename();
                 minioClient.putObject(PutObjectArgs.builder().bucket(bucketName).object(minFileName).stream(in, in.available(), -1).contentType(file.getContentType()).build());
                 LOGGER.info("上传文件-成功.文件名:{}, 存储桶名:{}", minFileName, bucketName);
-                in.close();
-            } catch (Exception e) {
+            } catch (MinioException | IOException | NoSuchAlgorithmException | InvalidKeyException e) {
                 LOGGER.error("上传文件-失败:" + e.getMessage(), e);
-                throw new BusinessException("Upload files unsuccessfully");
+                throw new BusinessException(e.getMessage());
+            } finally {
+                IOUtils.closeQuietly(in);
             }
         }
-        return "Upload files successfully";
     }
 
     public Boolean uploadObject(String bucketName, String objectName, String fileName) {
         try {
             minioClient.uploadObject(UploadObjectArgs.builder().bucket(bucketName).object(objectName).filename(fileName).build());
-        } catch (Exception e) {
-            throw new BusinessException(ResponseData.error().getCode(), "Upload object has error!", e);
+        } catch (MinioException | IOException | NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new BusinessException(e.getMessage());
         }
         return true;
     }
 
     public void download(String bucketName, String fileName, HttpServletResponse response) {
+        InputStream object = null;
         try {
+            minioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(fileName).build());
             response.setHeader("Content-Disposition", "attachment;filename=" + fileName);
             response.setContentType("application/force-download");
             response.setCharacterEncoding("UTF-8");
             GetObjectArgs objectArgs = GetObjectArgs.builder().bucket(bucketName)
                     .object(fileName).build();
-            GetObjectResponse object = minioClient.getObject(objectArgs);
+            object = minioClient.getObject(objectArgs);
             IOUtils.copy(object, response.getOutputStream());
             LOGGER.info("下载文件-成功.文件名:{}, 存储桶名:{}", fileName, bucketName);
-            IOUtils.closeQuietly(object);
         } catch (Exception e) {
             LOGGER.error("下载文件失败-失败:" + e.getMessage(), e);
-            throw new BusinessException("Download object has error!");
+            throw new BusinessException(e.getMessage());
+        } finally {
+            IOUtils.closeQuietly(object);
         }
     }
 
-    public String downloadToLocalDisk(String bucketName, String objectName, String diskFileName) {
+    public void downloadToLocalDisk(String bucketName, String objectName, String diskFileName) {
         try {
-            if (!bucketExists(bucketName)) {
-                return "Bucket is not in existence！";
-            }
+            minioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectName).build());
             minioClient.downloadObject(DownloadObjectArgs.builder().bucket(bucketName).object(objectName).filename(diskFileName).build());
-            LOGGER.info("下载文件到本地磁盘-成功.文件名:{}, 存储桶名:{}", objectName, bucketName);
+            LOGGER.info("下载文件到本地磁盘-成功.文件名:{}, 本地磁盘文件名:{},存储桶名:{}", objectName, diskFileName, bucketName);
         } catch (Exception e) {
             LOGGER.error("下载文件到本地磁盘失败-失败:" + e.getMessage(), e);
-            throw new BusinessException("Download to local disk has error!");
+            throw new BusinessException(e.getMessage());
         }
-        return "Download to local disk successfully";
     }
 
     public List<FileItemVO> listObjects(String bucketName) {
         try {
             if (!bucketExists(bucketName)) {
-                return null;
+                throw new BusinessException("bucket does not exit");
             }
             ListObjectsArgs args = ListObjectsArgs.builder().bucket(bucketName).build();
             Iterable<Result<Item>> it = minioClient.listObjects(args);
@@ -169,9 +172,9 @@ public class MinioServiceImpl implements MinioService {
                 }
                 return list;
             }
-        } catch (Exception e) {
+        } catch (MinioException | IOException | NoSuchAlgorithmException | InvalidKeyException e) {
             LOGGER.error("查询目标文件桶中文件失败-失败:" + e.getMessage(), e);
-            throw new BusinessException("List objects has error!");
+            throw new BusinessException(e.getMessage());
         }
         return null;
     }
@@ -182,7 +185,7 @@ public class MinioServiceImpl implements MinioService {
             message = minioClient.getBucketPolicy(GetBucketPolicyArgs.builder().bucket(bucketName).build());
         } catch (Exception e) {
             LOGGER.error("查询文件桶策略失败-失败:" + e.getMessage(), e);
-            throw new BusinessException("Get bucket policy has error!");
+            throw new BusinessException(e.getMessage());
         }
         return message;
     }
@@ -211,11 +214,10 @@ public class MinioServiceImpl implements MinioService {
         return null;
     }
 
-    public String removeObject(String bucketName, String objectName) {
-        if (!bucketExists(bucketName)) {
-            return "Bucket is not in existence！";
-        }
+    public void removeObject(String bucketName, String objectName) {
         try {
+            //判断文件桶或者文件是否存在，如果不存在就抛出异常
+            minioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectName).build());
             minioClient.removeObject(
                     RemoveObjectArgs.builder()
                             .bucket(bucketName)
@@ -223,9 +225,8 @@ public class MinioServiceImpl implements MinioService {
                             .build());
         } catch (Exception e) {
             LOGGER.error("删除文件失败-失败:" + e.getMessage(), e);
-            throw new BusinessException("Remove object has error!");
+            throw new BusinessException(e.getMessage());
         }
-        return "Successfully deleted！";
     }
 
     public Boolean removeObjects(String bucketName, List<String> objectNames) {
@@ -248,6 +249,7 @@ public class MinioServiceImpl implements MinioService {
         String url;
         expiry = expiryHandle(expiry);
         try {
+            minioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectName).build());
             url = minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
@@ -258,7 +260,7 @@ public class MinioServiceImpl implements MinioService {
             );
         } catch (Exception e) {
             LOGGER.error("获取文件下载地址失败-失败:" + e.getMessage(), e);
-            throw new BusinessException("Get object url has error!");
+            throw new BusinessException(e.getMessage());
         }
         return url;
     }
@@ -267,6 +269,9 @@ public class MinioServiceImpl implements MinioService {
         String url;
         expiry = expiryHandle(expiry);
         try {
+            if (!bucketExists(bucketName)) {
+                throw new BusinessException("bucket does not exit");
+            }
             url = minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.PUT)
@@ -275,9 +280,9 @@ public class MinioServiceImpl implements MinioService {
                             .expiry(expiry)
                             .build()
             );
-        } catch (Exception e) {
+        } catch (MinioException | IOException | NoSuchAlgorithmException | InvalidKeyException e) {
             LOGGER.error("获取文件上传地址失败-失败:" + e.getMessage(), e);
-            throw new BusinessException("Create upload url has error!");
+            throw new BusinessException(e.getMessage());
         }
         return url;
     }
@@ -325,7 +330,7 @@ public class MinioServiceImpl implements MinioService {
             LOGGER.info("下载文件-结束.文件:{}", filenamerel);
         } catch (Exception e) {
             LOGGER.error(String.format("下载文件-失败!文件:%s", filenamerel), e);
-            throw new BusinessException("Download file from url has error!");
+            throw new BusinessException(e.getMessage());
         } finally {
             IOUtils.closeQuietly(os, is);
         }

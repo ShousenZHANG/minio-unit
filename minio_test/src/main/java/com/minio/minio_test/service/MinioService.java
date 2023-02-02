@@ -28,9 +28,8 @@ public interface MinioService {
      * 创建存储bucket
      *
      * @param bucketName 存储bucket名称
-     * @return Boolean
      */
-    String makeBucket(String bucketName);
+    void makeBucket(String bucketName);
 
     /**
      * 删除存储桶bucket
@@ -38,16 +37,15 @@ public interface MinioService {
      * @param bucketName 存储bucket名称
      * @return Boolean
      */
-    String removeBucket(String bucketName);
+    void removeBucket(String bucketName);
 
     /**
      * 上传文件
      *
      * @param multipartFile 文件对象集合
      * @param bucketName    文件桶名称
-     * @return {@link String}
      */
-    String upload(List<MultipartFile> multipartFile, String bucketName);
+    void upload(List<MultipartFile> multipartFile, String bucketName);
 
     /**
      * 上传指定文件
@@ -76,7 +74,7 @@ public interface MinioService {
      * @param diskFileName 本地磁盘文件名称，全路径
      * @return {@link String}
      */
-    String downloadToLocalDisk(String bucketName, String objectName, String diskFileName);
+    void downloadToLocalDisk(String bucketName, String objectName, String diskFileName);
 
     /**
      * 查看文件对象
@@ -106,9 +104,8 @@ public interface MinioService {
      *
      * @param bucketName 文件桶名称
      * @param objectName 文件名称
-     * @return {@link String}
      */
-    String removeObject(String bucketName, String objectName);
+    void removeObject(String bucketName, String objectName);
 
     /**
      * 批量删除多个文件
@@ -131,10 +128,11 @@ public interface MinioService {
     String getObjectUrl(String bucketName, String objectName, Integer expiry);
 
     /**
-     * 创建上传文件对象的外链(默认一个小时到期)
+     * 创建上传文件链接
      *
-     * @param bucketName 存储桶名称
-     * @param objectName 要上传文件对象的名称
+     * @param bucketName 文件桶名称
+     * @param objectName 文件名称
+     * @param expiry     到期时间
      * @return {@link String}
      */
     String createUploadUrl(String bucketName, String objectName, Integer expiry);
