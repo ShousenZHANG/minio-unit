@@ -2,14 +2,18 @@ package com.minio.minio_test.vo;
 
 import lombok.*;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
- * Minio存储桶
- * 
+ * Represents a Minio storage bucket.
+ * This class holds metadata related to a bucket such as its name and creation time.
+ * <p>
+ * Implements {@link Serializable} for object serialization.
+ * </p>
+ *
  * @author wenjianhai
- * @date 2022/1/18
- * @since JDK 1.8
+ * @date 2022/01/18
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -18,10 +22,12 @@ import java.io.Serializable;
 @NoArgsConstructor
 public class BucketVO implements Serializable {
 
-	private static final long serialVersionUID = -7078176219040233386L;
+	@Serial
+	private static final long serialVersionUID = 1L;
 
-	/** 桶名 */
+	/** The name of the bucket */
 	private String name;
-	/** 创建时间 */
+
+	/** The creation timestamp of the bucket */
 	private String createTime;
 }

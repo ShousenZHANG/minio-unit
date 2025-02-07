@@ -11,7 +11,17 @@ spring:
       max-request-size: 200MB
 
 minio:
-  endpoint: http://localhost:9000
+  endpoint: http://192.168.44.129:9000/
   accessKey: minioadmin
   secretKey: minioadmin
+
+logging:
+  level:
+    root: info
+    com.minio.minio_test: debug
+  file:
+    name: logs/application.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 

@@ -9,7 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
- * Minio的Service接口层
+ * Minio service interface.
  *
  * @author zhang
  * @date 2023/01/09
@@ -17,9 +17,9 @@ import java.util.List;
 public interface MinioService {
 
     /**
-     * 查看存储bucket是否存在
+     * check if the bucket exists
      *
-     * @param bucketName 存储桶名称
+     * @param bucketName bucket name
      * @return boolean
      */
     Boolean bucketExists(String bucketName);

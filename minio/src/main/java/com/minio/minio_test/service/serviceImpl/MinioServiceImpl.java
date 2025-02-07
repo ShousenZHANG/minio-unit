@@ -44,21 +44,28 @@ import java.util.stream.Collectors;
 @Component
 public class MinioServiceImpl implements MinioService {
 
+    // Static pattern for formatter
+    private static final String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(MinioServiceImpl.class);
 
     @Resource
     private MinioClient minioClient;
 
+    @Override
     public Boolean bucketExists(String bucketName) {
-        boolean found;
         try {
-            found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
+            // Check if the bucket exists
+            return minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
         } catch (MinioException | IOException | NoSuchAlgorithmException | InvalidKeyException e) {
-            throw new BusinessException(e.getMessage());
+            // Log the error for debugging purposes
+            LOGGER.error("Error while checking if bucket '{}' exists: {}", bucketName, e.getMessage(), e);
+            // Throw a custom exception with detailed context
+            throw new BusinessException("Failed to check if bucket exists: " + bucketName, e);
         }
-        return found;
     }
 
+    @Override
     public void makeBucket(String bucketName) {
         try {
             if (!bucketExists(bucketName)) {
@@ -73,6 +80,7 @@ public class MinioServiceImpl implements MinioService {
         }
     }
 
+    @Override
     public void removeBucket(String bucketName) {
         try {
             if (bucketExists(bucketName)) {
@@ -191,29 +199,47 @@ public class MinioServiceImpl implements MinioService {
     }
 
 
-    @SneakyThrows
+    /**
+     * Fetches the list of buckets from Minio.
+     *
+     * @return List of Minio buckets, or an empty list if an error occurs.
+     */
     private List<Bucket> listBuckets() {
-        return minioClient.listBuckets();
-    }
-
-    public List<BucketVO> listBucketNames() {
-        List<Bucket> list = listBuckets();
-        if (!(CollectionUtils.isEmpty(list))) {
-
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                    .withZone(ZoneId.of("Asia/Shanghai"));
-
-            return list.stream().map(o -> {
-                ZonedDateTime creationDate = o.creationDate();
-                BucketVO vo = new BucketVO();
-                vo.setName(o.name());
-                vo.setCreateTime(creationDate.format(formatter));
-                return vo;
-            }).collect(Collectors.toList());
+        try {
+            return minioClient.listBuckets();
+        } catch (Exception e) {
+            LOGGER.error("An error occurred while fetching the bucket list: {}", e.getMessage(), e);
+            return Collections.emptyList();
         }
-        return null;
     }
 
+    /**
+     * Converts a list of Minio buckets to a list of BucketVOs.
+     * Uses the user's system time zone for date formatting.
+     *
+     * @return List of BucketVOs
+     */
+    @Override
+    public List<BucketVO> listBucketNames() {
+        List<Bucket> bucketList = listBuckets();
+
+        if (bucketList == null || bucketList.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Dynamic formatter with the system's default time zone
+        ZoneId systemZone = ZoneId.systemDefault();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_PATTERN).withZone(systemZone);
+
+        return bucketList.stream()
+                .map(bucket -> BucketVO.builder()
+                        .name(bucket.name())
+                        .createTime(bucket.creationDate().format(formatter))
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public void removeObject(String bucketName, String objectName) {
         try {
             //判断文件桶或者文件是否存在，如果不存在就抛出异常

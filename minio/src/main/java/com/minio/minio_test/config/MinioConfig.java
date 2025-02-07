@@ -8,8 +8,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Minio 配置类
- * 负责初始化 MinioClient 并提供全局可用的 Bean
+ * Minio Configuration Class
+ * Responsible for initializing the MinioClient and providing it as a Spring Bean.
  *
  * @author zhang
  * @date 2023/01/31
@@ -23,25 +23,25 @@ public class MinioConfig {
     private final MinioClientProperties minioClientProperties;
 
     /**
-     * 初始化 MinioClient
+     * Initializes the MinioClient with the configured endpoint, access key, and secret key.
      *
-     * @return MinioClient
+     * @return MinioClient instance
      */
     @Bean
     public MinioClient minioClient() {
         try {
-            log.info("正在初始化 MinioClient, 连接到 Minio 服务器: {}", minioClientProperties.getEndpoint());
+            log.info("Initializing MinioClient, connecting to Minio server at: {}", minioClientProperties.getEndpoint());
 
             MinioClient minioClient = MinioClient.builder()
                     .endpoint(minioClientProperties.getEndpoint())
                     .credentials(minioClientProperties.getAccessKey(), minioClientProperties.getSecretKey())
                     .build();
 
-            log.info("MinioClient 初始化成功！");
+            log.info("MinioClient successfully initialized.");
             return minioClient;
         } catch (Exception e) {
-            log.error("MinioClient 初始化失败！请检查 Minio 配置。错误信息：{}", e.getMessage(), e);
-            throw new RuntimeException("MinioClient 初始化失败", e);
+            log.error("Failed to initialize MinioClient. Please check the Minio configuration. Error: {}", e.getMessage(), e);
+            throw new RuntimeException("MinioClient initialization failed. Ensure the Minio endpoint, access key, and secret key are correctly configured.", e);
         }
     }
 }
