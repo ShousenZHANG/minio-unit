@@ -262,24 +262,49 @@ public class MinioController {
 
 
 
-    /**
-     * 定期清除存储桶中的文件内容
-     */
-//    @Scheduled(cron = "0 0/1 14 * * ? ")
+//    /**
+//     * Scheduled task to periodically clear files in the specified bucket.
+//     * Removes files older than one day from the "miniodemo" bucket.
+//     */
+//    @Scheduled(cron = "0 0/1 14 * * ?")
 //    private void clearIntervals() {
-//        //当前时间前一天的时间
-//        ZonedDateTime rangeTime = ZonedDateTime.now().minusDays(1);
-//        //创建定期清除策略的文件存储桶
-//        minioService.makeBucket("miniodemo");
-//        //删除一天之前的文件内容
-//        List<FileItemVO> clearIntervalsBucketList = minioService.listObjects("miniodemo");
-//        for (FileItemVO fileItemVO : clearIntervalsBucketList) {
-//            String lastModified = fileItemVO.getLastModifyTime();
-//            boolean flag = lastModified.isBefore(rangeTime);
-//            if (flag) {
-//                minioService.removeObject("miniodemo", fileItemVO.getName());
-//            }
+//        // Calculate the time range for files to be deleted (files older than one day)
+//        ZonedDateTime cutoffTime = ZonedDateTime.now().minusDays(1);
+//
+//        // Ensure the bucket exists; create it if necessary
+//        String bucketName = "miniodemo";
+//        minioService.makeBucket(bucketName);
+//
+//        // Retrieve all objects in the bucket
+//        List<FileItemVO> fileList = minioService.listObjects(bucketName);
+//
+//        // Filter and delete files older than the cutoff time
+//        fileList.stream()
+//                .filter(file -> isOlderThanCutoff(file.getLastModifyTime(), cutoffTime))
+//                .forEach(file -> {
+//                    minioService.removeObject(bucketName, file.getName());
+//                });
+//    }
+//
+//    /**
+//     * Checks if a file's last modified time is before the given cutoff time.
+//     *
+//     * @param lastModifiedTime The last modified time of the file as a string.
+//     * @param cutoffTime       The cutoff time for deletion.
+//     * @return true if the file is older than the cutoff time, false otherwise.
+//     */
+//    private boolean isOlderThanCutoff(String lastModifiedTime, ZonedDateTime cutoffTime) {
+//        if (StringUtils.isBlank(lastModifiedTime)) {
+//            return false;
+//        }
+//
+//        try {
+//            ZonedDateTime fileTime = ZonedDateTime.parse(lastModifiedTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("Asia/Shanghai")));
+//            return fileTime.isBefore(cutoffTime);
+//        } catch (Exception e) {
+//            return false;
 //        }
 //    }
+
 }
 

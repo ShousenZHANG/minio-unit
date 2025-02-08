@@ -3,143 +3,143 @@ package com.minio.minio_test.service;
 import com.minio.minio_test.vo.BucketVO;
 import com.minio.minio_test.vo.FileItemVO;
 import org.springframework.web.multipart.MultipartFile;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.List;
 
 /**
- * Minio service interface.
+ * Minio Service Interface for managing file storage operations.
+ * Provides methods for bucket management, file upload/download,
+ * policy retrieval, and URL generation.
  *
- * @author zhang
+ * @author Zhang
  * @date 2023/01/09
  */
 public interface MinioService {
 
     /**
-     * check if the bucket exists
+     * Checks if the specified bucket exists.
      *
-     * @param bucketName bucket name
-     * @return boolean
+     * @param bucketName The name of the bucket.
+     * @return true if the bucket exists, false otherwise.
      */
     Boolean bucketExists(String bucketName);
 
     /**
-     * 创建存储bucket
+     * Creates a new bucket.
      *
-     * @param bucketName 存储bucket名称
+     * @param bucketName The name of the bucket to create.
      */
     void makeBucket(String bucketName);
 
     /**
-     * 删除存储桶bucket
+     * Deletes a bucket.
      *
-     * @param bucketName 存储bucket名称
+     * @param bucketName The name of the bucket to delete.
      */
     void removeBucket(String bucketName);
 
     /**
-     * 上传文件
+     * Uploads multiple files to the specified bucket.
      *
-     * @param multipartFile 文件对象集合
-     * @param bucketName    文件桶名称
+     * @param files      List of files to be uploaded.
+     * @param bucketName The target bucket name.
      */
-    void upload(List<MultipartFile> multipartFile, String bucketName);
+    void upload(List<MultipartFile> files, String bucketName);
 
     /**
-     * 上传指定文件
+     * Uploads a specific file to the bucket.
      *
-     * @param bucketName 文件桶名称
-     * @param objectName 桶内文件名称
-     * @param fileName   需要上传的文件全路径名称
+     * @param bucketName The target bucket name.
+     * @param objectName The object name inside the bucket.
+     * @param filePath   The full path of the file to upload.
      */
-    void uploadObject(String bucketName, String objectName, String fileName);
+    void uploadObject(String bucketName, String objectName, String filePath);
 
     /**
-     * 文件下载
+     * Downloads a file from a bucket and streams it to the response.
      *
-     * @param bucketName 存储桶bucket名称
-     * @param fileName   文件名称
-     * @param res        response
+     * @param bucketName The bucket containing the file.
+     * @param fileName   The name of the file to download.
+     * @param response   The HTTP response to write the file data.
      */
-    void download(String bucketName, String fileName, HttpServletResponse res);
+    void download(String bucketName, String fileName, HttpServletResponse response);
 
     /**
-     * 下载文件到本地磁盘位置
+     * Downloads a file from the bucket and saves it to the local disk.
      *
-     * @param bucketName   存储桶名称
-     * @param objectName   桶中文件名称
-     * @param diskFileName 本地磁盘文件名称，全路径
+     * @param bucketName   The bucket name.
+     * @param objectName   The object name inside the bucket.
+     * @param localFilePath The full path where the file should be saved locally.
      */
-    void downloadToLocalDisk(String bucketName, String objectName, String diskFileName);
+    void downloadToLocalDisk(String bucketName, String objectName, String localFilePath);
 
     /**
-     * 查看文件对象
+     * Lists all objects (files) in a specified bucket.
      *
-     * @param bucketName 存储bucket名称
-     * @return 存储bucket内文件对象信息
+     * @param bucketName The bucket name.
+     * @return A list of file objects inside the bucket.
      */
     List<FileItemVO> listObjects(String bucketName);
 
     /**
-     * 查询桶的策略
+     * Retrieves the bucket policy for the specified bucket.
      *
-     * @param bucketName 桶名称
-     * @return {@link String}
+     * @param bucketName The bucket name.
+     * @return The bucket policy as a JSON string.
      */
     String getBucketPolicy(String bucketName);
 
     /**
-     * 获取所有桶的名称
+     * Lists all available bucket names.
      *
-     * @return {@link List}<{@link String}>
+     * @return A list of bucket names.
      */
     List<BucketVO> listBucketNames();
 
     /**
-     * 单个文件的删除
+     * Deletes a specific object (file) from a bucket.
      *
-     * @param bucketName 文件桶名称
-     * @param objectName 文件名称
+     * @param bucketName The bucket name.
+     * @param objectName The object name to be deleted.
      */
     void removeObject(String bucketName, String objectName);
 
     /**
-     * 批量删除多个文件
+     * Deletes multiple objects (files) from a bucket.
      *
-     * @param bucketName  文件桶名称
-     * @param objectNames 文件名称
-     * @return {@link Boolean}
+     * @param bucketName  The bucket name.
+     * @param objectNames List of object names to be deleted.
+     * @return true if deletion was successful, false otherwise.
      */
     Boolean removeObjects(String bucketName, List<String> objectNames);
 
     /**
-     * 获取访问对象的外链地址
-     * 获取文件的下载的url
+     * Generates a pre-signed URL for downloading an object.
      *
-     * @param bucketName 存储桶名称
-     * @param objectName 对象名称
-     * @param expiry     过期时间（分钟） 最大为7天
-     * @return {@link String}
+     * @param bucketName The bucket name.
+     * @param objectName The object name inside the bucket.
+     * @param expiry     Expiration time in minutes (maximum 7 days).
+     * @return A pre-signed URL for downloading the file.
      */
     String getObjectUrl(String bucketName, String objectName, Integer expiry);
 
     /**
-     * 创建上传文件链接
+     * Generates a pre-signed URL for uploading an object.
      *
-     * @param bucketName 文件桶名称
-     * @param objectName 文件名称
-     * @param expiry     到期时间
-     * @return {@link String}
+     * @param bucketName The bucket name.
+     * @param objectName The object name inside the bucket.
+     * @param expiry     Expiration time in minutes.
+     * @return A pre-signed URL for uploading the file.
      */
     String createUploadUrl(String bucketName, String objectName, Integer expiry);
 
     /**
-     * 通过文件链接地址进行文件下载
+     * Downloads a file via a direct URL and streams it to the response.
      *
-     * @param request  请求
-     * @param response 响应
+     * @param request  The HTTP request containing file URL parameters.
+     * @param response The HTTP response to send the file data.
      */
     void downloadUrl(HttpServletRequest request, HttpServletResponse response);
-
 }

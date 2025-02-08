@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * minio启动类
+ * minio
  *
  * @author zhang
  * @date 2022/11/29

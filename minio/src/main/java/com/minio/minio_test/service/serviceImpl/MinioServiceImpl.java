@@ -115,23 +115,27 @@ public class MinioServiceImpl implements MinioService {
 
     @Override
     public void removeBucket(String bucketName) {
+        // Validate input
+        if (StringUtils.isBlank(bucketName)) {
+            throw new BusinessException("Bucket name cannot be empty.");
+        }
+
+        // Check if the bucket exists before attempting deletion
+        if (!bucketExists(bucketName)) {
+            LOGGER.warn("Attempted to remove a non-existing bucket: {}", bucketName);
+            return; // Exit gracefully instead of throwing an exception
+        }
+
         try {
-            // Check if the bucket exists
-            if (bucketExists(bucketName)) {
-                // Remove the bucket
-                minioClient.removeBucket(RemoveBucketArgs.builder().bucket(bucketName).build());
-                LOGGER.info("Bucket removed successfully. Bucket name: {}", bucketName);
-            } else {
-                // Throw an exception if the bucket does not exist
-                throw new BusinessException("Bucket does not exist: " + bucketName);
-            }
+            // Proceed with bucket deletion
+            minioClient.removeBucket(RemoveBucketArgs.builder().bucket(bucketName).build());
+            LOGGER.info("Bucket removed successfully: {}", bucketName);
         } catch (MinioException | IOException | NoSuchAlgorithmException | InvalidKeyException e) {
-            // Log the error with bucket name and full stack trace
-            LOGGER.error("Failed to remove bucket. Bucket name: {}, Error: {}", bucketName, e.getMessage(), e);
-            // Throw a custom exception with detailed context
+            LOGGER.error("Failed to remove bucket '{}': {}", bucketName, e.getMessage(), e);
             throw new BusinessException("Failed to remove bucket: " + bucketName, e);
         }
     }
+
 
 
     @Override

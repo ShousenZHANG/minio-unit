@@ -8,10 +8,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
- * 全局异常处理类
+ * Global Exception Handler for the application.
+ * Handles exceptions and returns unified error responses.
  *
  * @author zhang
  * @date 2022/12/12
@@ -20,11 +22,26 @@ import java.text.SimpleDateFormat;
 public class GlobalExceptionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /**
+     * Handles custom BusinessException.
+     *
+     * @param e the BusinessException thrown by the application.
+     * @return a standardized error response.
+     */
     @ExceptionHandler(BusinessException.class)
     @ResponseBody
-    public ResponseData handleFileTransferException(BusinessException e) {
-        LOGGER.error(e.getErrorMessage(), e);
-        return ResponseData.error(ResponseData.error().getCode(), e.getErrorMessage(), new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(System.currentTimeMillis()));
+    public ResponseData<Object> handleBusinessException(BusinessException e) {
+        // Log the exception with detailed message and stack trace
+        LOGGER.error("BusinessException occurred: {}", e.getErrorMessage(), e);
+
+        // Create an error response with the current timestamp
+        String timestamp = LocalDateTime.now().format(DATE_TIME_FORMATTER);
+        return ResponseData.error(
+                ResponseData.error().getCode(),
+                e.getErrorMessage(),
+                timestamp
+        );
     }
 }
