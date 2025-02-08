@@ -1,8 +1,11 @@
 package com.minio.minio_test.controller;
 
 import com.minio.minio_test.Response.ResponseData;
+import com.minio.minio_test.exception.BusinessException;
+import com.minio.minio_test.vo.BucketVO;
 import com.minio.minio_test.vo.FileItemVO;
 import com.minio.minio_test.service.MinioService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -10,9 +13,10 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * minio 控制层
+ * minio controller.
  *
  * @author zhang
  * @date 2022/11/29
@@ -24,168 +28,238 @@ public class MinioController {
     private MinioService minioService;
 
     /**
-     * 上传文件信息
+     * Upload multiple files to MinIO.
      *
-     * @param files      多文件
-     * @param bucketName 存储桶名称
-     * @return {@link ResponseData}
+     * @param files      List of files to be uploaded.
+     * @param bucketName The target bucket name.
+     * @return {@link ResponseData}<{@link List}<{@link String}>> List of uploaded file names.
      */
     @ResponseBody
     @PostMapping("/upload")
-    public ResponseData upload(List<MultipartFile> files, String bucketName) {
+    public ResponseData<List<String>> upload(
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam("bucketName") String bucketName) {
+
+        // Validate input
+        if (files == null || files.isEmpty()) {
+            throw new BusinessException("No files provided for upload.");
+        }
+
+        // Call service to upload files
         minioService.upload(files, bucketName);
-        return ResponseData.success("上传文件成功");
+
+        // Collect uploaded file names
+        List<String> uploadedFileNames = files.stream()
+                .map(MultipartFile::getOriginalFilename)
+                .collect(Collectors.toList());
+
+        // Return response with uploaded file names
+        return ResponseData.success("Files uploaded successfully", uploadedFileNames);
     }
 
     /**
-     * 删除存储桶中文件信息
+     * Deletes a file from the specified bucket.
      *
-     * @param bucketName 文件桶名称
-     * @param objectName 文件名称
-     * @return {@link ResponseData}
+     * @param bucketName The name of the bucket
+     * @param objectName The name of the file to delete
+     * @return {@link ResponseData} containing the result message
      */
     @ResponseBody
     @DeleteMapping("/deleteObject")
-    public ResponseData delete(String bucketName, String objectName) {
+    public ResponseData<String> deleteObject(
+            @RequestParam("bucketName") String bucketName,
+            @RequestParam("objectName") String objectName) {
+        // Call the service method to remove the object
         minioService.removeObject(bucketName, objectName);
-        return ResponseData.success("删除文件成功");
+        // Return a success response
+        return ResponseData.success("File deleted successfully from bucket: " + bucketName);
     }
 
+
     /**
-     * 创建桶
+     * Create a new MinIO bucket.
      *
-     * @param bucketName 桶名称
-     * @return {@link String}
+     * @param bucketName The name of the bucket to be created.
+     * @return {@link ResponseData}<{@link String}> Success message wrapped in a response object.
      */
     @ResponseBody
     @PostMapping("/makeBucket")
-    public ResponseData makeBucket(String bucketName) {
+    public ResponseData<String> makeBucket(@RequestParam("bucketName") String bucketName) {
+        // Call service to create bucket
         minioService.makeBucket(bucketName);
-        return ResponseData.success("创建文件桶成功");
+        // Return response
+        return ResponseData.success("Bucket created successfully: " + bucketName);
     }
 
+
     /**
-     * 通过minio的api进行下载文件
+     * Downloads a file from MinIO to the local disk.
      *
-     * @param objectName 目标文件
-     * @param fileName   下载
-     * @return {@link String}
+     * @param bucketName The name of the bucket
+     * @param objectName The name of the object to download
+     * @param fileName The local file path where the object will be saved
+     * @return {@link ResponseData} containing the result message
      */
     @ResponseBody
     @PostMapping("/downloadToLocal")
-    public ResponseData download(@RequestParam("bucketName") String bucketName, @RequestParam("object") String objectName, @RequestParam("localFile") String fileName) {
-        minioService.downloadToLocalDisk(bucketName, objectName, fileName);
-        return ResponseData.success("下载文件成功");
+    public ResponseData<String> downloadToLocal(
+            @RequestParam("bucketName") String bucketName,
+            @RequestParam("objectName") String objectName,
+            @RequestParam("localFile") String fileName) {
 
+        // Call the service method to download the object
+        minioService.downloadToLocalDisk(bucketName, objectName, fileName);
+
+        // Return success response
+        return ResponseData.success("File downloaded successfully to: " + fileName);
     }
 
 
+
     /**
-     * 通过流的方式进行文件下载
+     * Download a file using a stream.
      *
-     * @param bucketName 文件桶名称
-     * @param fileName   下载的文件名称
-     * @param res        响应信息
-     * @return {@link ResponseData}
+     * @param bucketName The bucket name where the file is stored.
+     * @param fileName   The name of the file to be downloaded.
+     * @param response   The HTTP response to write the file data.
      */
     @ResponseBody
     @PostMapping("/downloadFile")
-    public void downloadFile(@RequestParam("bucketName") String bucketName, @RequestParam("file") String fileName, HttpServletResponse res) {
-        minioService.download(bucketName, fileName, res);
+    public void downloadFile(
+            @RequestParam("bucketName") String bucketName,
+            @RequestParam("fileName") String fileName,
+            HttpServletResponse response) {
+        // Call the service method to handle the download process
+        minioService.download(bucketName, fileName, response);
     }
 
 
+
     /**
-     * 查询所有文件信息
+     * Query all file information in a bucket.
      *
-     * @param bucketName 桶名称
-     * @return {@link List}<{@link FileItemVO}>
+     * @param bucketName The name of the bucket
+     * @return {@link ResponseData} containing a list of {@link FileItemVO}
      */
     @ResponseBody
     @GetMapping("/listObjects")
-    public ResponseData listObjects(String bucketName) {
-        List<FileItemVO> fileItemVOS = minioService.listObjects(bucketName);
-        return ResponseData.success(fileItemVOS);
+    public ResponseData<List<FileItemVO>> listObjects(@RequestParam("bucketName") String bucketName) {
+        // Fetch the list of file items from the bucket
+        List<FileItemVO> fileItems = minioService.listObjects(bucketName);
+        return ResponseData.success(fileItems);
     }
 
+
+
+
     /**
-     * 查询所有桶名称
+     * Retrieve all bucket names.
      *
-     * @return {@link ResponseData}
+     * @return {@link ResponseData}<{@link List}<{@link String}>> A list of bucket names wrapped in a response object.
      */
     @ResponseBody
     @GetMapping("/listBuckets")
-    public ResponseData listBuckets() {
-        return ResponseData.success(minioService.listBucketNames());
+    public ResponseData<List<BucketVO>> listBuckets() {
+        List<BucketVO> bucketNames = minioService.listBucketNames();
+        return ResponseData.success(bucketNames);
     }
 
 
     /**
-     * 删除桶
+     * Delete a bucket.
      *
-     * @param bucketName 桶名称
-     * @return {@link String}
+     * @param bucketName The name of the bucket to delete.
+     * @return {@link ResponseData}<{@link String}> Success message wrapped in a response object.
      */
     @ResponseBody
     @DeleteMapping("/deleteBucket")
-    public ResponseData deleteBucket(String bucketName) {
+    public ResponseData<String> deleteBucket(@RequestParam("bucketName") String bucketName) {
+        // Call the service to remove the bucket
         minioService.removeBucket(bucketName);
-        return ResponseData.success("删除文件桶成功");
+
+        // Return a success response
+        return ResponseData.success("Bucket deleted successfully: " + bucketName);
     }
 
+
     /**
-     * 查询桶的策略信息
+     * Retrieves the access policy of a specified MinIO bucket.
      *
-     * @param bucketName 桶名称
-     * @return {@link String}
+     * @param bucketName The name of the bucket.
+     * @return {@link ResponseData} containing the bucket policy in JSON format.
      */
     @ResponseBody
     @GetMapping("/getBucketPolicy")
-    public String getBucketPolicy(String bucketName) {
-        return minioService.getBucketPolicy(bucketName);
+    public ResponseData<String> getBucketPolicy(@RequestParam("bucketName") String bucketName) {
+        String policy = minioService.getBucketPolicy(bucketName);
+        return ResponseData.success(policy);
     }
 
+
     /**
-     * 创建下载文件外链链接
+     * Generate a download URL for a file.
      *
-     * @param bucketName 存储桶名称
-     * @param objectName 文件名称
-     * @param expires    过期时间
-     * @return {@link ResponseData}
+     * @param bucketName The name of the bucket where the file is stored.
+     * @param objectName The name of the file for which the URL is being generated.
+     * @param expires    The expiration time of the URL in seconds.
+     * @return {@link ResponseData}<{@link String}> The generated URL wrapped in a response object.
      */
     @ResponseBody
     @PostMapping("/getObjectUrl")
-    public ResponseData getObjectUrl(String bucketName, String objectName, Integer expires) {
+    public ResponseData<String> getObjectUrl(
+            @RequestParam("bucketName") String bucketName,
+            @RequestParam("objectName") String objectName,
+            @RequestParam(value = "expires", required = false, defaultValue = "3600") Integer expires) {
+
+        // Call the service method to generate the URL
         String objectUrl = minioService.getObjectUrl(bucketName, objectName, expires);
-        return ResponseData.success("文件链接地址创建成功", objectUrl);
+
+        // Return a success response with the generated URL
+        return ResponseData.success("File download URL created successfully", objectUrl);
     }
 
+
     /**
-     * 创建文件上传外链链接
+     * Generate an upload URL for a file.
      *
-     * @param bucketName 存储桶名称
-     * @param objectName 文件名称
-     * @param expires    过期时间
-     * @return {@link ResponseData}
+     * @param bucketName The name of the bucket where the file will be uploaded.
+     * @param objectName The name of the file to be uploaded.
+     * @param expires    The expiration time of the URL in seconds.
+     * @return {@link ResponseData}<{@link String}> The generated URL wrapped in a response object.
      */
     @ResponseBody
     @PostMapping("/getUploadUrl")
-    public ResponseData createUploadUrl(String bucketName, String objectName, Integer expires) {
+    public ResponseData<String> createUploadUrl(
+            @RequestParam("bucketName") String bucketName,
+            @RequestParam("objectName") String objectName,
+            @RequestParam(value = "expires", required = false, defaultValue = "3600") Integer expires) {
+
+        // Call the service method to generate the upload URL
         String uploadUrl = minioService.createUploadUrl(bucketName, objectName, expires);
-        return ResponseData.success("文件上传地址创建成功", uploadUrl);
+
+        // Return a success response with the generated upload URL
+        return ResponseData.success("File upload URL created successfully", uploadUrl);
     }
 
+
     /**
-     * 通过文件链接地址进行文件下载
+     * Downloads a file using the file URL provided in the HTTP request.
      *
-     * @param request  请求
-     * @param response 响应
+     * @param request  The HTTP request containing the file URL parameters.
+     * @param response The HTTP response used to stream the file back to the client.
      */
     @ResponseBody
     @GetMapping("/fileUrl/download")
     public void downloadUrl(HttpServletRequest request, HttpServletResponse response) {
+        String fileUrl = request.getParameter("fileUrl");
+        if (StringUtils.isBlank(fileUrl)) {
+            throw new BusinessException("File URL cannot be empty.");
+        }
+
+        // Delegate directly to the service layer without explicit exception handling
         minioService.downloadUrl(request, response);
     }
+
 
 
     /**

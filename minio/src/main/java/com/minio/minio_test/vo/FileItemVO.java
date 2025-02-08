@@ -2,13 +2,17 @@ package com.minio.minio_test.vo;
 
 import lombok.*;
 
+import java.io.Serial;
 import java.io.Serializable;
-import java.time.ZonedDateTime;
 
 /**
- * 文件信息
+ * Represents the metadata of a file stored in MinIO.
+ * Provides details such as name, size, type, and ownership.
+ * Implements {@link Serializable} for object serialization.
  *
- * @author zhang
+ * <p>Fields like {@code foreverUrl} can be used for creating permanent access links.</p>
+ *
+ * @author Zhang
  * @date 2022/11/29
  */
 @Data
@@ -17,18 +21,42 @@ import java.time.ZonedDateTime;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
 public class FileItemVO implements Serializable {
-    /** 文件名 */
+
+    @Serial
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * The name of the file or directory.
+     */
     private String name;
-    /** 最后更新时间 */
+
+    /**
+     * The last modified timestamp of the file, formatted as a string.
+     */
     private String lastModifyTime;
-    /** 作者 */
+
+    /**
+     * The name of the file's owner.
+     */
     private String ownerName;
-    /** 文件大小（字节） */
+
+    /**
+     * The size of the file in bytes. Default is 0 for directories.
+     */
     private long size;
-    /** 是否目录 */
+
+    /**
+     * Indicates if the item is a directory.
+     */
     private boolean isDir;
-    /** 文件类型 */
+
+    /**
+     * The encoding type or MIME type of the file.
+     */
     private String encodingType;
-    /** 文件永久链接 */
+
+    /**
+     * The permanent URL for accessing the file.
+     */
     private String foreverUrl;
 }

@@ -35,7 +35,6 @@ public interface MinioService {
      * 删除存储桶bucket
      *
      * @param bucketName 存储bucket名称
-     * @return Boolean
      */
     void removeBucket(String bucketName);
 
@@ -53,9 +52,8 @@ public interface MinioService {
      * @param bucketName 文件桶名称
      * @param objectName 桶内文件名称
      * @param fileName   需要上传的文件全路径名称
-     * @return {@link Boolean}
      */
-    Boolean uploadObject(String bucketName, String objectName, String fileName);
+    void uploadObject(String bucketName, String objectName, String fileName);
 
     /**
      * 文件下载
@@ -72,7 +70,6 @@ public interface MinioService {
      * @param bucketName   存储桶名称
      * @param objectName   桶中文件名称
      * @param diskFileName 本地磁盘文件名称，全路径
-     * @return {@link String}
      */
     void downloadToLocalDisk(String bucketName, String objectName, String diskFileName);
 

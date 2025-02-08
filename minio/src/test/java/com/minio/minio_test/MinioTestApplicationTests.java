@@ -5,7 +5,10 @@ import com.minio.minio_test.vo.BucketVO;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -36,7 +39,7 @@ class MinioTestApplicationTests {
     @Test
     void makeBucket() {
         // Given: A predefined bucket name
-        String bucketName = "test2";
+        String bucketName = "test3";
 
         // When: Creating a new bucket
         minioService.makeBucket(bucketName);
@@ -54,5 +57,47 @@ class MinioTestApplicationTests {
         bucketVOList.forEach(bucket -> System.out.printf("Bucket: %s, Created At: %s%n", bucket.getName(), bucket.getCreateTime()));
     }
 
+    @Test
+    void removeBucket() {
+        // Given: A predefined bucket name
+        String bucketName = "test3";
+
+        // When: Removing the bucket
+        minioService.removeBucket(bucketName);
+
+        // Log output for reference (Optional)
+        System.out.println("Bucket '" + bucketName + "' removed successfully");
+    }
+
+    @Test
+    void upload() {
+        // Given: A predefined bucket name
+        String bucketName = "test";
+
+        MultipartFile mockFile = new MockMultipartFile(
+                "file", "test.txt", "text/plain", "Hello, Minio!".getBytes()
+        );
+
+        List<MultipartFile> files = Collections.singletonList(mockFile);
+        // When: Uploading a file to the bucket
+        minioService.upload(files, bucketName);
+
+        // Log output for reference (Optional)
+        System.out.println("File uploaded successfully");
+    }
+
+    @Test
+    void uploadObject() {
+        // Given: A predefined bucket name
+        String bucketName = "test";
+        String objectName = "zzzz.txt";
+        String fileName = "E:\\minio_unit\\minio\\logs\\application.log";
+
+        // When: Uploading a file to the bucket
+        minioService.uploadObject(bucketName, objectName, fileName);
+
+        // Log output for reference (Optional)
+        System.out.println("File uploaded successfully");
+    }
 
 }

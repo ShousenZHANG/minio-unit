@@ -1,68 +1,90 @@
 package com.minio.minio_test.Response;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import org.apache.http.HttpStatus;
+import lombok.*;
+import org.springframework.http.HttpStatus;
 
 /**
- * 接口响应参数
+ * Unified API response structure.
  *
- * @author wenjianhai
- * @date 2022/1/17
- * @since JDK 1.8
+ * @author Zhang
+ * @param <T> The type of response data.
  */
 @Data
-@EqualsAndHashCode(callSuper = false)
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class ResponseData {
+@EqualsAndHashCode(callSuper = false)
+public class ResponseData<T> {
 
+    /** HTTP status code */
     private int code;
-    private String msg;
-    private Object data;
 
-    public ResponseData() {
+    /** Response message */
+    private String message;
+
+    /** Response data */
+    private T data;
+
+    /**
+     * Success response without data.
+     */
+    public static <T> ResponseData<T> success() {
+        return new ResponseData<>(HttpStatus.OK.value(), "Operation successful", null);
     }
 
-    public ResponseData(int code, String msg, Object data) {
-        this.code = code;
-        this.msg = msg;
-        this.data = data;
+    /**
+     * Success response with a custom message.
+     */
+    public static <T> ResponseData<T> success(String message) {
+        return new ResponseData<>(HttpStatus.OK.value(), message, null);
     }
 
-    public static ResponseData success() {
-        return new ResponseData(HttpStatus.SC_OK, "操作成功", null);
+    /**
+     * Success response with data.
+     */
+    public static <T> ResponseData<T> success(T data) {
+        return new ResponseData<>(HttpStatus.OK.value(), "Operation successful", data);
     }
 
-    public static ResponseData success(String msg) {
-        return new ResponseData(HttpStatus.SC_OK, msg, null);
+    /**
+     * Success response with custom message and data.
+     */
+    public static <T> ResponseData<T> success(String message, T data) {
+        return new ResponseData<>(HttpStatus.OK.value(), message, data);
     }
 
-    public static ResponseData success(Object data) {
-        return new ResponseData(HttpStatus.SC_OK, "操作成功", data);
+    /**
+     * Error response with default internal server error.
+     */
+    public static <T> ResponseData<T> error() {
+        return new ResponseData<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Operation failed", null);
     }
 
-    public static ResponseData success(String msg, Object data) {
-        return new ResponseData(HttpStatus.SC_OK, msg, data);
+    /**
+     * Error response with custom message.
+     */
+    public static <T> ResponseData<T> error(String message) {
+        return new ResponseData<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), message, null);
     }
 
-    public static ResponseData error() {
-        return new ResponseData(HttpStatus.SC_INTERNAL_SERVER_ERROR, "操作失败", null);
+    /**
+     * Error response with custom message and data.
+     */
+    public static <T> ResponseData<T> error(String message, T data) {
+        return new ResponseData<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), message, data);
     }
 
-    public static ResponseData error(String msg) {
-        return new ResponseData(HttpStatus.SC_INTERNAL_SERVER_ERROR, msg, null);
+    /**
+     * Error response with custom status code and message.
+     */
+    public static <T> ResponseData<T> error(int code, String message) {
+        return new ResponseData<>(code, message, null);
     }
 
-    public static ResponseData error(String msg, Object data) {
-        return new ResponseData(HttpStatus.SC_INTERNAL_SERVER_ERROR, msg, data);
-    }
-
-    public static ResponseData error(int code, String msg) {
-        return new ResponseData(code, msg, null);
-    }
-
-    public static ResponseData error(int code, String msg, Object data) {
-        return new ResponseData(code, msg, data);
+    /**
+     * Error response with custom status code, message, and data.
+     */
+    public static <T> ResponseData<T> error(int code, String message, T data) {
+        return new ResponseData<>(code, message, data);
     }
 }
