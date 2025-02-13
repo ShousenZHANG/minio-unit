@@ -1,6 +1,6 @@
-# 🌟 **Minio Demo Project** 🌟  
+# 🌟 **Minio Test Project** 🌟  
 
-*A simple yet powerful demonstration of integrating [Minio](https://min.io) with Spring Boot!*  
+*A robust demonstration of integrating [MinIO](https://min.io) with Spring Boot for efficient object storage management!*  
 
 ---
 
@@ -8,27 +8,27 @@
 
 - 🚀 **File Upload & Download**: Effortlessly manage files using RESTful APIs.  
 - 📦 **Bucket Management**: Create, delete, and list buckets seamlessly.  
-- 🎛️ **Configurable Minio Client**: Simplified setup via `application.yml`.  
+- 🎪 **Configurable Minio Client**: Simplified setup via `application.yml`.  
 - 🛡️ **Error Handling**: Robust centralized and custom exception mechanisms.  
 - 🔗 **Extensibility**: Ready to integrate with larger systems!  
 
 ---
 
-## **🛠️ Tech Stack**  
+## **🫠 Tech Stack**  
 
 | Technology      | Version |
 | --------------- | ------- |
-| **Java**        | 17+     |
-| **Spring Boot** | 2.x+    |
-| **Minio SDK**   | Latest  |
+| **Java**        | 23+     |
+| **Spring Boot** | 3.4.1   |
+| **Minio SDK**   | 8.5.15  |
 | **Maven**       | 3.x+    |
 
 ---
 
-## **📂 Project Structure**  
+## **📎 Project Structure**  
 
 ```
-Minio_demo
+Minio_test
 ├── src
 │   ├── main
 │   │   ├── java/com/minio/minio_test
@@ -51,13 +51,11 @@ Minio_demo
 ## **🚀 Getting Started**
 
 ### **🎯 Prerequisites**
-
-- Java 17+
+- Java 23+
 - Maven 3.x+
-- Minio Server
+- Minio Server (v8.5.15+)
 
 ### **1️⃣ Install Minio**
-
 Download and install Minio from [here](https://min.io/download).  
 Run the server locally:  
 
@@ -66,25 +64,24 @@ minio server /data
 ```
 
 ### **2️⃣ Clone Repository**
-
 ```bash
-git clone https://github.com/your-username/Minio_demo.git
-cd Minio_demo
+git clone [https://github.com/your-username/Minio_test.git](https://github.com/ShousenZHANG/minio-unit.git)
+cd Minio_test
 ```
 
 ### **3️⃣ Configure Credentials**
-
 Edit the `application.yml` file with your Minio credentials:  
 
 ```yaml
 minio:
-  endpoint: http://localhost:9000
-  accessKey: your-access-key
-  secretKey: your-secret-key
+  # User-defined MinIO configuration
+  # Replace the following values with your own MinIO server details
+  endpoint: http://localhost:9000  # MinIO server address
+  accessKey: your-access-key  # Custom MinIO access key
+  secretKey: your-secret-key  # Custom MinIO secret key (keep it secure)
 ```
 
 ### **4️⃣ Build & Run**
-
 ```bash
 mvn clean install
 mvn spring-boot:run
@@ -94,29 +91,26 @@ mvn spring-boot:run
 
 ---
 
-## **📢 API Endpoints**
+## **💼 API Endpoints**
 
 ### **File Operations**
-
-| Endpoint                 | Method | Description     | Example   |
-| ------------------------ | ------ | --------------- | --------- |
-| `/minio/upload`          | POST   | Upload a file   | [Demo](#) |
-| `/minio/download/{name}` | GET    | Download a file | [Demo](#) |
-| `/minio/list`            | GET    | List all files  | [Demo](#) |
+| Endpoint                 | Method | Description          |
+| ------------------------ | ------ | -------------------- |
+| `/upload`               | POST   | Upload multiple files to MinIO |
+| `/deleteObject`         | DELETE | Delete a file from MinIO |
+| `/downloadToLocal`      | POST   | Download a file to the local disk |
+| `/downloadFile`         | POST   | Download a file using a stream |
+| `/listObjects`          | GET    | List all file information in a bucket |
 
 ### **Bucket Operations**
-
-| Endpoint                | Method | Description         | Example   |
-| ----------------------- | ------ | ------------------- | --------- |
-| `/minio/buckets`        | GET    | List all buckets    | [Demo](#) |
-| `/minio/buckets/create` | POST   | Create a new bucket | [Demo](#) |
-| `/minio/buckets/delete` | DELETE | Delete a bucket     | [Demo](#) |
-
----
-
-## **🌈 Live Demo (Coming Soon!)**  
-
-[![Demo Animation](https://media.giphy.com/media/xT0BKiaM2VGJSwH5XG/giphy.gif)](https://github.com/your-username/Minio_demo)  
+| Endpoint                | Method | Description         |
+| ----------------------- | ------ | ------------------- |
+| `/makeBucket`          | POST   | Create a new bucket |
+| `/listBuckets`         | GET    | List all buckets    |
+| `/deleteBucket`        | DELETE | Delete a bucket     |
+| `/getBucketPolicy`     | GET    | Retrieve bucket policy |
+| `/getObjectUrl`        | POST   | Generate a download URL |
+| `/getUploadUrl`        | POST   | Generate an upload URL |
 
 ---
 
@@ -142,7 +136,7 @@ We ❤️ contributions! Follow these steps:
 
 ---
 
-## **📋 License**  
+## **🗉 License**  
 
 This project is licensed under the MIT License.  
 
@@ -153,4 +147,3 @@ This project is licensed under the MIT License.
 👤 **Eddy ZHANG**  
 📧 Email: [eddy.zhang24@gmail.com](mailto:eddy.zhang24@gmail.com)  
 
----
