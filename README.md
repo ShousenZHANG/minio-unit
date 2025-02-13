@@ -16,12 +16,17 @@
 
 ## **🫠 Tech Stack**  
 
-| Technology      | Version |
-| --------------- | ------- |
-| **Java**        | 23+     |
-| **Spring Boot** | 3.4.1   |
-| **Minio SDK**   | 8.5.15  |
-| **Maven**       | 3.x+    |
+| Technology              | Version   |
+| ----------------------- | --------- |
+| **Java**               | 23+       |
+| **Spring Boot**        | 3.4.1     |
+| **Spring Web**         | Latest    |
+| **Minio SDK**          | 8.5.15    |
+| **Maven**              | 3.x+      |
+| **Lombok**             | 1.18.36   |
+| **Apache Commons IO**  | 2.14.0    |
+| **Apache HTTP Client** | 4.5.13    |
+| **OkHttp**             | 5.0.0     |
 
 ---
 
