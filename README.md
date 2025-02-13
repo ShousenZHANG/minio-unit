@@ -65,7 +65,7 @@ minio server /data
 
 ### **2️⃣ Clone Repository**
 ```bash
-git clone [https://github.com/your-username/Minio_test.git](https://github.com/ShousenZHANG/minio-unit.git)
+git clone https://github.com/ShousenZHANG/minio-unit.git
 cd Minio_test
 ```
 
