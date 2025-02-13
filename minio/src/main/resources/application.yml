@@ -4,16 +4,18 @@ server:
 
 
 spring:
-  # 配置文件上传大小限制
   servlet:
     multipart:
       max-file-size: 200MB
       max-request-size: 200MB
 
 minio:
-  endpoint: http://192.168.44.129:9000/
-  accessKey: minioadmin
-  secretKey: minioadmin
+  # User-defined MinIO configuration
+  # Replace the following values with your own MinIO server details
+  endpoint: http://192.168.44.129:9000/  # MinIO server address
+  accessKey: minioadmin  # Custom MinIO access key
+  secretKey: minioadmin  # Custom MinIO secret key (keep it secure)
+
 
 logging:
   level:
